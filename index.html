@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Comunicação Interna - Saúde</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 800px; background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        h2, h3 { margin-bottom: 20px; color: var(--primary-dark); text-align: center; }
+        .page { display: none; }
+        .page.active { display: block; }
+        
+        /* Form Controls */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; transition: 0.3s; }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(2,132,199,0.2); }
+        
+        /* Buttons */
+        button { width: 100%; padding: 12px; border: none; background-color: var(--primary); color: white; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; }
+        button:hover { background-color: var(--primary-dark); }
+        .btn-secondary { background-color: #64748b; margin-top: 10px; }
+        .btn-secondary:hover { background-color: #475569; }
+        
+        /* Grid das Opções Iniciais */
+        .doc-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .doc-card { border: 2px solid var(--border); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .doc-card:hover { border-color: var(--primary); background: rgba(2,132,199,0.05); }
+        .doc-card i { font-size: 40px; color: var(--primary); margin-bottom: 10px; }
+        
+        /* Header pós-login */
+        .user-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; font-size: 14px; }
+        .logout-btn { color: #ef4444; cursor: pointer; font-weight: bold; }
+
+        /* Estilos da Área Restrita */
+        .ci-item { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid var(--primary); }
+        .ci-details { display: none; background: #e2e8f0; padding: 15px; border-radius: 0 0 8px 8px; margin-top: -10px; margin-bottom: 10px; font-size: 14px; line-height: 1.6; }
+        
+        @media (max-width: 600px) {
+            .doc-options { grid-template-columns: 1fr; }
+            .user-header { flex-direction: column; gap: 10px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="pageLogin" class="page active">
+        <h2><i class="fa-solid fa-file-medical"></i> Portal CI - Saúde</h2>
+        <form id="formLogin">
+            <div class="form-group">
+                <label>Usuário</label>
+                <input type="text" id="loginUser" required placeholder="Ex: usuario.sobrenome">
+            </div>
+            <div class="form-group">
+                <label>Senha</label>
+                <input type="password" id="loginPass" required placeholder="••••••••">
+            </div>
+            <button type="submit" id="btnLogar">Entrar</button>
+        </form>
+    </div>
+
+    <div id="pageIndex" class="page">
+        <div class="user-header">
+            <div><i class="fa-solid fa-user"></i> <span id="lblUser"></span> (<span id="lblCargo"></span>)</div>
+            <div class="logout-btn" onclick="logout()"><i class="fa-solid fa-sign-out-alt"></i> Sair</div>
+        </div>
+        <h3>Selecione o Tipo de Documento</h3>
+        <div class="doc-options">
+            <div class="doc-card" onclick="abrirFormulario('Troca Temporária')">
+                <i class="fa-solid fa-clock"></i>
+                <h3>Troca Temporária</h3>
+            </div>
+            <div class="doc-card" onclick="abrirFormulario('Troca Permanente')">
+                <i class="fa-solid fa-calendar-check"></i>
+                <h3>Troca Permanente</h3>
+            </div>
+        </div>
+        <button id="btnAreaRestrita" class="btn-secondary" style="display:none;" onclick="abrirAreaRestrita()">
+            <i class="fa-solid fa-lock"></i> Consultar Documentos Enviados
+        </button>
+    </div>
+
+    <div id="pageForm" class="page">
+        <h2 id="formTitle">Formulário de Envio</h2>
+        <form id="formCI">
+            <div class="form-group">
+                <label>Nome do Profissional</label>
+                <input type="text" id="profNome" required placeholder="Ex: EXEMPLO TESTE PROFISSIONAL">
+            </div>
+            <div class="form-group">
+                <label>Ocupação (CBO)</label>
+                <input type="text" id="profCbo" required placeholder="Ex: Técnico em Enfermagem">
+            </div>
+            <div class="form-group">
+                <label>CPF</label>
+                <input type="text" id="profCpf" required placeholder="000.000.000-00">
+            </div>
+            <div class="form-group">
+                <label>Unidade Atual</label>
+                <select id="unidadeAtual" required onchange="verificarEquipe()"></select>
+            </div>
+            <div class="form-group">
+                <label>Unidade Destino</label>
+                <select id="unidadeDestino" required></select>
+            </div>
+            <div class="form-group" id="groupEquipe">
+                <label>Equipe</label>
+                <select id="profEquipe">
+                    <option value="EQUIPE 1">EQUIPE 1</option>
+                    <option value="EQUIPE 2">EQUIPE 2</option>
+                    <option value="EQUIPE 2">SEM EQUIPE</option>
+                </select>
+            </div>
+            <button type="submit" id="btnEnviar">Enviar Documento</button>
+            <button type="button" class="btn-secondary" onclick="voltarIndex()">Voltar</button>
+        </form>
+    </div>
+
+    <div id="pageRestrita" class="page">
+        <h2><i class="fa-solid fa-lock"></i> Documentos Enviados</h2>
+        <div id="listaCIs">Carregando documentos...</div>
+        <button type="button" class="btn-secondary" onclick="voltarIndex()">Voltar</button>
+    </div>
+</div>
+
+<script>
+    // URL DO SEU GOOGLE APPS SCRIPT AQUI:
+    const API_URL = "https://script.google.com/macros/s/AKfycby3R7VYM7xHxWxrp1tX6McYm5BALrNPCxKYfgaqv_MMUg0JyjLcLZUQgul-gTA0mEfmxQ/exec";
+
+    let usuarioLogado = null;
+    let tipoDocumentoAtual = "";
+
+    const unidades = [
+        "ESF 01 – RUI RAMOS", "ESF 02 – MARDUQUE", "ESF 03 – CIDADE NOVA", "ESF 04 – COHAB", 
+        "ESF 05 – TARRAGO", "ESF 06 – SÃO JOÃO", "ESF 07 – UNIÃO DAS VILAS", "ESF 09 – BARRAGEM", 
+        "UBS 10 - SÃO MARCOS", "UBS 11 – JOÃO ARREGUI", "UBS 12 – PLANO ALTO", "ESF 14 – TABAJARA BRITES", 
+        "ESF 15 – HIPICA", "ESF 16 – CIDADE ALEGRIA", "ESF 17 – NOVA ESPERANÇA", "ESF 18 – PROFLURB", 
+        "ESF 19 – JOÃO PAULO II", "ESF 20 – CAIC", "ESF 21 – CENTRO", "ESF 22 – CABO LUIS QUEVEDO", 
+        "ESF 23 – SANTO ANTÔNIO", "CONSULTORIO NA RUA", "CENTRO DE FISIOTERAPIA", "POLICLÍNICA ADULTO", 
+        "POLICLÍNICA INFANTIL", "SAÚDE DA MULHER", "TRATAMENTO FORA DOMICÍLIO", "LABORATÓRIO MUNICIPAL", 
+        "AGENDAMENTO", "UNIDADE SENTINELA", "CAPS AD", "CAPS II", "AMBULATÓRIO DE SAÚDE MENTAL", 
+        "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA"
+    ];
+
+    const semEquipe = [
+        "ESF 02 – MARDUQUE", "ESF 03 – CIDADE NOVA", "ESF 04 – COHAB", "ESF 05 – TARRAGO", 
+        "ESF 09 – BARRAGEM", "ESF 15 – HIPICA", "ESF 18 – PROFLURB", "ESF 19 – JOÃO PAULO II", 
+        "ESF 20 – CAIC", "ESF 23 – SANTO ANTÔNIO", "CENTRO DE FISIOTERAPIA", "POLICLÍNICA ADULTO", 
+        "POLICLÍNICA INFANTIL", "SAÚDE DA MULHER", "TRATAMENTO FORA DOMICÍLIO", "LABORATÓRIO MUNICIPAL", 
+        "AGENDAMENTO", "UNIDADE SENTINELA", "CAPS AD", "CAPS II", "AMBULATÓRIO DE SAÚDE MENTAL", 
+        "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA"
+    ];
+
+    // Carregar Comboboxes
+    function carregarUnidades() {
+        const atual = document.getElementById("unidadeAtual");
+        const destino = document.getElementById("unidadeDestino");
+        atual.innerHTML = ""; destino.innerHTML = "";
+        unidades.forEach(u => {
+            atual.options.add(new Option(u, u));
+            destino.options.add(new Option(u, u));
+        });
+    }
+
+    function verificarEquipe() {
+        const unidade = document.getElementById("unidadeAtual").value;
+        const groupEquipe = document.getElementById("groupEquipe");
+        if (semEquipe.includes(unidade)) {
+            groupEquipe.style.display = "none";
+        } else {
+            groupEquipe.style.display = "block";
+        }
+    }
+
+    // Controle de Telas
+    function navegar(idTela) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(idTela).classList.add('active');
+    }
+
+    // Login
+    document.getElementById("formLogin").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById("btnLogar");
+        btn.disabled = true; btn.innerText = "Autenticando...";
+        
+        const payload = {
+            action: "login",
+            usuario: document.getElementById("loginUser").value,
+            senha: document.getElementById("loginPass").value
+        };
+
+        try {
+            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+            let data = await res.json();
+            if(data.success) {
+                usuarioLogado = data;
+                document.getElementById("lblUser").innerText = data.usuario;
+                document.getElementById("lblCargo").innerText = data.cargo;
+                document.getElementById("btnAreaRestrita").style.display = data.admin ? "block" : "none";
+                navegar("pageIndex");
+                carregarUnidades();
+                verificarEquipe();
+            } else {
+                alert(data.message);
+            }
+        } catch(err) {
+            alert("Erro de conexão com o servidor de banco de dados.");
+        } finally {
+            btn.disabled = false; btn.innerText = "Entrar";
+        }
+    });
+
+    function abrirFormulario(tipo) {
+        tipoDocumentoAtual = tipo;
+        document.getElementById("formTitle").innerText = `Envio de CI - ${tipo}`;
+        navegar("pageForm");
+    }
+
+    function voltarIndex() { navegar("pageIndex"); }
+    function logout() { usuarioLogado = null; navegar("pageLogin"); document.getElementById("formLogin").reset(); }
+
+    // Enviar CI
+    document.getElementById("formCI").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById("btnEnviar");
+        btn.disabled = true; btn.innerText = "Gravando na Planilha...";
+
+        const payload = {
+            action: "enviarCI",
+            remetente: usuarioLogado.usuario,
+            tipoTroca: tipoDocumentoAtual,
+            nomeProfissional: document.getElementById("profNome").value,
+            cbo: document.getElementById("profCbo").value,
+            cpf: document.getElementById("profCpf").value,
+            unidadeAtual: document.getElementById("unidadeAtual").value,
+            unidadeDestino: document.getElementById("unidadeDestino").value,
+            equipe: document.getElementById("groupEquipe").style.display === "none" ? "Não se aplica" : document.getElementById("profEquipe").value
+        };
+
+        try {
+            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+            let data = await res.json();
+            if(data.success) {
+                alert("CI gravada com sucesso!");
+                document.getElementById("formCI").reset();
+                verificarEquipe();
+                voltarIndex();
+            }
+        } catch(err) {
+            alert("Erro ao enviar.");
+        } finally {
+            btn.disabled = false; btn.innerText = "Enviar Documento";
+        }
+    });
+
+    // Área Restrita
+    async function abrirAreaRestrita() {
+        navegar("pageRestrita");
+        const lista = document.getElementById("listaCIs");
+        lista.innerHTML = "Carregando documentos vindos da planilha...";
+
+        try {
+            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "listarCIs" }) });
+            let resData = await res.json();
+            if(resData.success) {
+                lista.innerHTML = "";
+                if(resData.dados.length === 0) { lista.innerHTML = "Nenhuma CI enviada."; return; }
+                
+                resData.dados.forEach((ci, index) => {
+                    let item = document.createElement("div");
+                    item.className = "ci-item";
+                    item.innerHTML = `<strong>${ci.nomeProfissional}</strong><br><small>${ci.tipoTroca} - ${ci.dataHora}</small>`;
+                    item.onclick = () => {
+                        let det = document.getElementById(`det-${index}`);
+                        det.style.display = det.style.display === "block" ? "none" : "block";
+                    };
+                    
+                    let det = document.createElement("div");
+                    det.id = `det-${index}`;
+                    det.className = "ci-details";
+                    det.innerHTML = `
+                        <strong>Pedido por:</strong> ${ci.remetente}<br>
+                        <strong>Data/Hora do Pedido:</strong> ${ci.dataHora}<br>
+                        <strong>CBO:</strong> ${ci.cbo}<br>
+                        <strong>CPF:</strong> ${ci.cpf}<br>
+                        <strong>Origem:</strong> ${ci.unidadeAtual}<br>
+                        <strong>Destino:</strong> ${ci.unidadeDestino}<br>
+                        <strong>Equipe:</strong> ${ci.equipe}
+                    `;
+                    lista.appendChild(item);
+                    lista.appendChild(det);
+                });
+            }
+        } catch(err) {
+            lista.innerHTML = "Erro ao buscar dados.";
+        }
+    }
+</script>
+</body>
+</html>
