@@ -3,54 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Comunicação Interna - Saúde</title>
+    <title>Portal CI - Gestão de Saúde</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             --primary: #0284c7;
             --primary-dark: #0369a1;
-            --bg: #f8fafc;
+            --bg: #f1f5f9;
             --card-bg: #ffffff;
             --text: #1e293b;
-            --border: #e2e8f0;
+            --border: #cbd5e1;
+            --success: #10b981;
+            --danger: #ef4444;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
         body { background-color: var(--bg); color: var(--text); padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { width: 100%; max-width: 800px; background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        h2, h3 { margin-bottom: 20px; color: var(--primary-dark); text-align: center; }
-        .page { display: none; }
-        .page.active { display: block; }
         
-        /* Form Controls */
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
-        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; transition: 0.3s; }
-        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(2,132,199,0.2); }
+        .container { width: 100%; max-width: 850px; background: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); transition: all 0.3s ease; }
         
-        /* Buttons */
-        button { width: 100%; padding: 12px; border: none; background-color: var(--primary); color: white; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; }
-        button:hover { background-color: var(--primary-dark); }
-        .btn-secondary { background-color: #64748b; margin-top: 10px; }
+        h2, h3 { margin-bottom: 24px; color: var(--primary-dark); text-align: center; font-weight: 700; }
+        
+        /* Controle de Telas (Fade In) */
+        .page { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .page.active { display: block; opacity: 1; }
+        
+        /* Formulários */
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #475569; }
+        input, select { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; outline: none; transition: 0.2s; background: #f8fafc; }
+        input:focus, select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(2,132,199,0.15); }
+        
+        /* Botões */
+        button { width: 100%; padding: 14px; border: none; background-color: var(--primary); color: white; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        button:hover { background-color: var(--primary-dark); transform: translateY(-1px); }
+        button:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+        .btn-secondary { background-color: #64748b; margin-top: 12px; }
         .btn-secondary:hover { background-color: #475569; }
         
         /* Grid das Opções Iniciais */
-        .doc-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .doc-card { border: 2px solid var(--border); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: 0.3s; }
-        .doc-card:hover { border-color: var(--primary); background: rgba(2,132,199,0.05); }
-        .doc-card i { font-size: 40px; color: var(--primary); margin-bottom: 10px; }
+        .doc-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; margin-bottom: 20px; }
+        .doc-card { border: 2px solid var(--border); border-radius: 12px; padding: 25px 15px; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #fff; }
+        .doc-card:hover { border-color: var(--primary); background: #f0f9ff; transform: translateY(-3px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .doc-card i { font-size: 40px; color: var(--primary); margin-bottom: 12px; }
+        .doc-card h3 { margin: 0; font-size: 16px; color: var(--text); }
         
-        /* Header pós-login */
-        .user-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; font-size: 14px; }
-        .logout-btn { color: #ef4444; cursor: pointer; font-weight: bold; }
+        /* Header Usuário */
+        .user-header { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; font-size: 14px; border: 1px solid var(--border); }
+        .user-info { font-weight: 600; color: var(--primary-dark); }
+        .logout-btn { color: var(--danger); cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .logout-btn:hover { color: #b91c1c; }
 
         /* Estilos da Área Restrita */
-        .ci-item { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid var(--primary); }
-        .ci-details { display: none; background: #e2e8f0; padding: 15px; border-radius: 0 0 8px 8px; margin-top: -10px; margin-bottom: 10px; font-size: 14px; line-height: 1.6; }
+        .ci-item { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border); border-left: 5px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; }
+        .ci-item:hover { border-left-color: var(--primary-dark); background: #f8fafc; }
+        .ci-details { display: none; background: #f1f5f9; padding: 16px; border-radius: 0 0 8px 8px; margin-top: -12px; margin-bottom: 12px; font-size: 14px; line-height: 1.8; border: 1px solid var(--border); border-top: none; }
         
+        /* Toast Notifications */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); box-shadow: 0 4px 6px rgba(0,0,0,0.2); font-weight: 600; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
+        #toast.show { visibility: visible; opacity: 1; bottom: 40px; }
+        #toast.success { background-color: var(--success); }
+        #toast.error { background-color: var(--danger); }
+
         @media (max-width: 600px) {
-            .doc-options { grid-template-columns: 1fr; }
-            .user-header { flex-direction: column; gap: 10px; text-align: center; }
+            .user-header { flex-direction: column; gap: 12px; text-align: center; }
+            .container { padding: 20px; }
         }
     </style>
 </head>
@@ -58,7 +75,7 @@
 
 <div class="container">
     <div id="pageLogin" class="page active">
-        <h2><i class="fa-solid fa-file-medical"></i> Portal CI - Saúde</h2>
+        <h2><i class="fa-solid fa-laptop-medical"></i> Portal CI - Gestão</h2>
         <form id="formLogin">
             <div class="form-group">
                 <label>Usuário</label>
@@ -68,28 +85,35 @@
                 <label>Senha</label>
                 <input type="password" id="loginPass" required placeholder="••••••••">
             </div>
-            <button type="submit" id="btnLogar">Entrar</button>
+            <button type="submit" id="btnLogar"><i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema</button>
         </form>
     </div>
 
     <div id="pageIndex" class="page">
         <div class="user-header">
-            <div><i class="fa-solid fa-user"></i> <span id="lblUser"></span> (<span id="lblCargo"></span>)</div>
-            <div class="logout-btn" onclick="logout()"><i class="fa-solid fa-sign-out-alt"></i> Sair</div>
+            <div class="user-info"><i class="fa-solid fa-user-circle"></i> <span id="lblUser"></span> (<span id="lblCargo"></span>)</div>
+            <div class="logout-btn" onclick="logout()"><i class="fa-solid fa-power-off"></i> Sair</div>
         </div>
-        <h3>Selecione o Tipo de Documento</h3>
+        
+        <h3>O que você deseja solicitar?</h3>
+        
         <div class="doc-options">
             <div class="doc-card" onclick="abrirFormulario('Troca Temporária')">
-                <i class="fa-solid fa-clock"></i>
+                <i class="fa-solid fa-user-clock"></i>
                 <h3>Troca Temporária</h3>
             </div>
             <div class="doc-card" onclick="abrirFormulario('Troca Permanente')">
-                <i class="fa-solid fa-calendar-check"></i>
+                <i class="fa-solid fa-user-check"></i>
                 <h3>Troca Permanente</h3>
             </div>
+            <div class="doc-card" onclick="abrirFormulario('Novo Profissional')">
+                <i class="fa-solid fa-user-plus"></i>
+                <h3>Novo Profissional</h3>
+            </div>
         </div>
+        
         <button id="btnAreaRestrita" class="btn-secondary" style="display:none;" onclick="abrirAreaRestrita()">
-            <i class="fa-solid fa-lock"></i> Consultar Documentos Enviados
+            <i class="fa-solid fa-unlock-keyhole"></i> Acesso Restrito: Consultar CI's
         </button>
     </div>
 
@@ -97,47 +121,51 @@
         <h2 id="formTitle">Formulário de Envio</h2>
         <form id="formCI">
             <div class="form-group">
-                <label>Nome do Profissional</label>
-                <input type="text" id="profNome" required placeholder="Ex: EXEMPLO TESTE PROFISSIONAL">
+                <label>Nome Completo do Profissional</label>
+                <input type="text" id="profNome" required placeholder="Digite o nome completo" autocomplete="off">
             </div>
             <div class="form-group">
                 <label>Ocupação (CBO)</label>
-                <input type="text" id="profCbo" required placeholder="Ex: Técnico em Enfermagem">
+                <input type="text" id="profCbo" required placeholder="Ex: Técnico em Enfermagem" autocomplete="off">
             </div>
             <div class="form-group">
                 <label>CPF</label>
-                <input type="text" id="profCpf" required placeholder="000.000.000-00">
+                <input type="text" id="profCpf" required placeholder="000.000.000-00" maxlength="14" autocomplete="off">
             </div>
-            <div class="form-group">
+            
+            <div class="form-group" id="groupUnidadeAtual">
                 <label>Unidade Atual</label>
-                <select id="unidadeAtual" required onchange="verificarEquipe()"></select>
+                <select id="unidadeAtual" onchange="verificarEquipe()"></select>
             </div>
+            
             <div class="form-group">
-                <label>Unidade Destino</label>
-                <select id="unidadeDestino" required></select>
+                <label id="lblUnidadeDestino">Unidade Destino</label>
+                <select id="unidadeDestino" required onchange="verificarEquipe()"></select>
             </div>
+            
             <div class="form-group" id="groupEquipe">
-                <label>Equipe</label>
+                <label>Equipe de Lotação</label>
                 <select id="profEquipe">
                     <option value="EQUIPE 1">EQUIPE 1</option>
                     <option value="EQUIPE 2">EQUIPE 2</option>
-                    <option value="EQUIPE 2">SEM EQUIPE</option>
                 </select>
             </div>
-            <button type="submit" id="btnEnviar">Enviar Documento</button>
-            <button type="button" class="btn-secondary" onclick="voltarIndex()">Voltar</button>
+            
+            <button type="submit" id="btnEnviar"><i class="fa-solid fa-paper-plane"></i> Enviar Documento</button>
+            <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Cancelar / Voltar</button>
         </form>
     </div>
 
     <div id="pageRestrita" class="page">
-        <h2><i class="fa-solid fa-lock"></i> Documentos Enviados</h2>
-        <div id="listaCIs">Carregando documentos...</div>
-        <button type="button" class="btn-secondary" onclick="voltarIndex()">Voltar</button>
+        <h2><i class="fa-solid fa-shield-halved"></i> CI's Recebidas</h2>
+        <div id="listaCIs" style="margin-bottom: 20px;">Carregando histórico...</div>
+        <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Voltar ao Menu</button>
     </div>
 </div>
 
+<div id="toast"></div>
+
 <script>
-    // URL DO SEU GOOGLE APPS SCRIPT AQUI:
     const API_URL = "https://script.google.com/macros/s/AKfycby3R7VYM7xHxWxrp1tX6McYm5BALrNPCxKYfgaqv_MMUg0JyjLcLZUQgul-gTA0mEfmxQ/exec";
 
     let usuarioLogado = null;
@@ -164,89 +192,151 @@
         "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA"
     ];
 
-    // Carregar Comboboxes
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("toast");
+        toast.innerText = message;
+        toast.className = `show ${type}`;
+        setTimeout(() => { toast.className = toast.className.replace(`show ${type}`, ""); }, 3500);
+    }
+
+    document.getElementById("profCpf").addEventListener("input", function(e) {
+        let v = e.target.value.replace(/\D/g, "");
+        if (v.length > 11) v = v.substring(0, 11);
+        v = v.replace(/(\d{3})(\d)/, "$1.$2");
+        v = v.replace(/(\d{3})(\d)/, "$1.$2");
+        v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+        e.target.value = v;
+    });
+
     function carregarUnidades() {
         const atual = document.getElementById("unidadeAtual");
         const destino = document.getElementById("unidadeDestino");
-        atual.innerHTML = ""; destino.innerHTML = "";
+        atual.innerHTML = '<option value="" disabled selected>Selecione uma unidade...</option>';
+        destino.innerHTML = '<option value="" disabled selected>Selecione uma unidade...</option>';
+        
         unidades.forEach(u => {
             atual.options.add(new Option(u, u));
             destino.options.add(new Option(u, u));
         });
     }
 
+    // Lógica corrigida para validar com precisão com base no tipo de CI selecionado
     function verificarEquipe() {
-        const unidade = document.getElementById("unidadeAtual").value;
+        const usarDestino = (tipoDocumentoAtual === "Novo Profissional" || tipoDocumentoAtual === "Troca Temporária");
+        const unidadeAlvo = usarDestino ? document.getElementById("unidadeDestino").value : document.getElementById("unidadeAtual").value;
         const groupEquipe = document.getElementById("groupEquipe");
-        if (semEquipe.includes(unidade)) {
+        
+        if (!unidadeAlvo || semEquipe.includes(unidadeAlvo)) {
             groupEquipe.style.display = "none";
         } else {
             groupEquipe.style.display = "block";
         }
     }
 
-    // Controle de Telas
     function navegar(idTela) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(idTela).classList.add('active');
     }
 
-    // Login
     document.getElementById("formLogin").addEventListener("submit", async function(e) {
         e.preventDefault();
         const btn = document.getElementById("btnLogar");
-        btn.disabled = true; btn.innerText = "Autenticando...";
+        const user = document.getElementById("loginUser").value;
+        
+        btn.disabled = true; 
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
         
         const payload = {
             action: "login",
-            usuario: document.getElementById("loginUser").value,
+            usuario: user,
             senha: document.getElementById("loginPass").value
         };
 
         try {
             let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
             let data = await res.json();
+            
             if(data.success) {
                 usuarioLogado = data;
-                document.getElementById("lblUser").innerText = data.usuario;
+                document.getElementById("lblUser").innerText = data.usuario.toUpperCase();
                 document.getElementById("lblCargo").innerText = data.cargo;
-                document.getElementById("btnAreaRestrita").style.display = data.admin ? "block" : "none";
+                document.getElementById("btnAreaRestrita").style.display = data.admin ? "flex" : "none";
+                
+                showToast(`Bem-vindo(a), ${data.usuario}!`, "success");
                 navegar("pageIndex");
                 carregarUnidades();
-                verificarEquipe();
             } else {
-                alert(data.message);
+                showToast(data.message || "Usuário ou senha inválidos.", "error");
             }
         } catch(err) {
-            alert("Erro de conexão com o servidor de banco de dados.");
+            showToast("Erro ao conectar com o banco de dados.", "error");
         } finally {
-            btn.disabled = false; btn.innerText = "Entrar";
+            btn.disabled = false; 
+            btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema';
         }
     });
 
     function abrirFormulario(tipo) {
         tipoDocumentoAtual = tipo;
-        document.getElementById("formTitle").innerText = `Envio de CI - ${tipo}`;
+        document.getElementById("formTitle").innerText = `Solicitação: ${tipo}`;
+        
+        const groupUnidadeAtual = document.getElementById("groupUnidadeAtual");
+        const lblUnidadeDestino = document.getElementById("lblUnidadeDestino");
+        const inputUnidadeAtual = document.getElementById("unidadeAtual");
+        const inputUnidadeDestino = document.getElementById("unidadeDestino");
+
+        inputUnidadeAtual.value = "";
+        inputUnidadeDestino.value = "";
+        document.getElementById("groupEquipe").style.display = "none";
+
+        if (tipo === "Novo Profissional" || tipo === "Troca Temporária") {
+            groupUnidadeAtual.style.display = "none";
+            inputUnidadeAtual.required = false;
+            lblUnidadeDestino.innerText = (tipo === "Novo Profissional") ? "Unidade de Lotação" : "Unidade Destino";
+        } else {
+            groupUnidadeAtual.style.display = "block";
+            inputUnidadeAtual.required = true;
+            lblUnidadeDestino.innerText = "Nova Unidade (Destino)";
+        }
+
         navegar("pageForm");
+        verificarEquipe();
     }
 
-    function voltarIndex() { navegar("pageIndex"); }
-    function logout() { usuarioLogado = null; navegar("pageLogin"); document.getElementById("formLogin").reset(); }
+    function voltarIndex() { navegar("pageIndex"); document.getElementById("formCI").reset(); }
+    
+    function logout() { 
+        usuarioLogado = null; 
+        document.getElementById("formLogin").reset();
+        navegar("pageLogin"); 
+        showToast("Você saiu do sistema.", "success");
+    }
 
-    // Enviar CI
     document.getElementById("formCI").addEventListener("submit", async function(e) {
         e.preventDefault();
+        
+        const cpfInput = document.getElementById("profCpf").value;
+        if(cpfInput.length !== 14) {
+            showToast("O CPF digitado está incompleto.", "error");
+            return;
+        }
+
         const btn = document.getElementById("btnEnviar");
-        btn.disabled = true; btn.innerText = "Gravando na Planilha...";
+        btn.disabled = true; 
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registrando no Sistema...';
+
+        let valUnidadeAtual = document.getElementById("unidadeAtual").value;
+        if (tipoDocumentoAtual === "Novo Profissional") valUnidadeAtual = "Admissão Nova";
+        if (tipoDocumentoAtual === "Troca Temporária") valUnidadeAtual = "Não se aplica (Temporária)";
 
         const payload = {
             action: "enviarCI",
             remetente: usuarioLogado.usuario,
             tipoTroca: tipoDocumentoAtual,
-            nomeProfissional: document.getElementById("profNome").value,
+            nomeProfissional: document.getElementById("profNome").value.toUpperCase(),
             cbo: document.getElementById("profCbo").value,
-            cpf: document.getElementById("profCpf").value,
-            unidadeAtual: document.getElementById("unidadeAtual").value,
+            cpf: cpfInput,
+            unidadeAtual: valUnidadeAtual,
             unidadeDestino: document.getElementById("unidadeDestino").value,
             equipe: document.getElementById("groupEquipe").style.display === "none" ? "Não se aplica" : document.getElementById("profEquipe").value
         };
@@ -255,35 +345,51 @@
             let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
             let data = await res.json();
             if(data.success) {
-                alert("CI gravada com sucesso!");
+                showToast("Documento enviado e registrado com sucesso!", "success");
                 document.getElementById("formCI").reset();
-                verificarEquipe();
                 voltarIndex();
             }
         } catch(err) {
-            alert("Erro ao enviar.");
+            showToast("Falha na comunicação. Tente novamente.", "error");
         } finally {
-            btn.disabled = false; btn.innerText = "Enviar Documento";
+            btn.disabled = false; 
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Documento';
         }
     });
 
-    // Área Restrita
     async function abrirAreaRestrita() {
         navegar("pageRestrita");
         const lista = document.getElementById("listaCIs");
-        lista.innerHTML = "Carregando documentos vindos da planilha...";
+        lista.innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><br>Buscando histórico...</div>';
 
         try {
             let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "listarCIs" }) });
             let resData = await res.json();
+            
             if(resData.success) {
                 lista.innerHTML = "";
-                if(resData.dados.length === 0) { lista.innerHTML = "Nenhuma CI enviada."; return; }
+                let dadosInvertidos = resData.dados.reverse();
+
+                if(dadosInvertidos.length === 0) { 
+                    lista.innerHTML = "<div style='text-align:center; color:#64748b;'>Nenhum documento registrado até o momento.</div>"; 
+                    return; 
+                }
                 
-                resData.dados.forEach((ci, index) => {
+                dadosInvertidos.forEach((ci, index) => {
                     let item = document.createElement("div");
                     item.className = "ci-item";
-                    item.innerHTML = `<strong>${ci.nomeProfissional}</strong><br><small>${ci.tipoTroca} - ${ci.dataHora}</small>`;
+                    
+                    let icon = "fa-file-lines";
+                    if(ci.tipoTroca === "Novo Profissional") icon = "fa-user-plus";
+                    if(ci.tipoTroca === "Troca Temporária") icon = "fa-clock";
+                    if(ci.tipoTroca === "Troca Permanente") icon = "fa-check-double";
+
+                    item.innerHTML = `<i class="fa-solid ${icon}" style="color:var(--primary); margin-right:8px;"></i> 
+                                      <strong>${ci.nomeProfissional}</strong>
+                                      <div style="font-size:12px; color:#64748b; margin-top:4px;">
+                                        ${ci.tipoTroca} • Solicitado em: ${ci.dataHora}
+                                      </div>`;
+                    
                     item.onclick = () => {
                         let det = document.getElementById(`det-${index}`);
                         det.style.display = det.style.display === "block" ? "none" : "block";
@@ -293,20 +399,20 @@
                     det.id = `det-${index}`;
                     det.className = "ci-details";
                     det.innerHTML = `
-                        <strong>Pedido por:</strong> ${ci.remetente}<br>
-                        <strong>Data/Hora do Pedido:</strong> ${ci.dataHora}<br>
-                        <strong>CBO:</strong> ${ci.cbo}<br>
-                        <strong>CPF:</strong> ${ci.cpf}<br>
-                        <strong>Origem:</strong> ${ci.unidadeAtual}<br>
-                        <strong>Destino:</strong> ${ci.unidadeDestino}<br>
-                        <strong>Equipe:</strong> ${ci.equipe}
+                        <strong><i class="fa-solid fa-user-tie"></i> Solicitante:</strong> ${ci.remetente}<br>
+                        <strong><i class="fa-solid fa-id-card"></i> CPF:</strong> ${ci.cpf}<br>
+                        <strong><i class="fa-solid fa-briefcase-medical"></i> CBO:</strong> ${ci.cbo}<br><hr style="border-top:1px solid #cbd5e1; margin:8px 0;">
+                        <strong><i class="fa-solid fa-building"></i> Origem/Atual:</strong> ${ci.unidadeAtual}<br>
+                        <strong><i class="fa-solid fa-hospital"></i> Destino/Lotação:</strong> ${ci.unidadeDestino}<br>
+                        <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${ci.equipe}
                     `;
+                    
                     lista.appendChild(item);
                     lista.appendChild(det);
                 });
             }
         } catch(err) {
-            lista.innerHTML = "Erro ao buscar dados.";
+            lista.innerHTML = "<div style='color:red; text-align:center;'>Erro ao consultar banco de dados. Verifique sua conexão.</div>";
         }
     }
 </script>
