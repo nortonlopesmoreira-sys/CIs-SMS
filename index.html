@@ -7,8 +7,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary: #0284c7;
-            --primary-dark: #0369a1;
+            --primary: #05316e; /* Azul Institucional Solicitado */
+            --primary-dark: #031c40; /* Tom mais escuro para hover */
+            --primary-light: #0f52b3; /* Tom um pouco mais claro para detalhes */
             --bg: #f1f5f9;
             --card-bg: #ffffff;
             --text: #1e293b;
@@ -21,9 +22,13 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
         body { background-color: var(--bg); color: var(--text); padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         
-        .container { width: 100%; max-width: 850px; background: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); transition: all 0.3s ease; }
+        .container { width: 100%; max-width: 850px; background: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: 0 10px 20px -5px rgba(5, 49, 110, 0.15); transition: all 0.3s ease; }
         
-        h2, h3 { margin-bottom: 24px; color: var(--primary-dark); text-align: center; font-weight: 700; }
+        /* Estilos do Logo */
+        .logo-login { display: block; margin: 0 auto 20px; max-width: 140px; height: auto; }
+        .logo-header { max-width: 50px; height: auto; margin-right: 15px; }
+        
+        h2, h3 { margin-bottom: 24px; color: var(--primary); text-align: center; font-weight: 700; }
         
         /* Controle de Telas (Fade In) */
         .page { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
@@ -35,15 +40,15 @@
         .form-col { flex: 1; }
         label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #475569; }
         input, select { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; outline: none; transition: 0.2s; background: #f8fafc; }
-        input:focus, select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(2,132,199,0.15); }
+        input:focus, select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(5,49,110,0.15); }
         
         /* Animação para campos dinâmicos */
-        .dynamic-field { display: none; animation: fadeIn 0.3s ease-in-out; background: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px dashed var(--primary); margin-bottom: 18px; }
+        .dynamic-field { display: none; animation: fadeIn 0.3s ease-in-out; background: #f4f8fc; padding: 15px; border-radius: 8px; border: 1px dashed var(--primary-light); margin-bottom: 18px; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Botões */
         button { width: 100%; padding: 14px; border: none; background-color: var(--primary); color: white; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
-        button:hover { background-color: var(--primary-dark); transform: translateY(-1px); }
+        button:hover { background-color: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         button:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
         .btn-secondary { background-color: #64748b; margin-top: 12px; }
         .btn-secondary:hover { background-color: #475569; }
@@ -51,23 +56,25 @@
         /* Grid das Opções Iniciais */
         .doc-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; margin-bottom: 20px; }
         .doc-card { border: 2px solid var(--border); border-radius: 12px; padding: 25px 15px; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #fff; }
-        .doc-card:hover { border-color: var(--primary); background: #f0f9ff; transform: translateY(-3px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .doc-card:hover { border-color: var(--primary); background: #f4f8fc; transform: translateY(-3px); box-shadow: 0 6px 12px -2px rgba(5,49,110,0.1); }
         .doc-card i { font-size: 35px; color: var(--primary); margin-bottom: 12px; }
         .doc-card h3 { margin: 0; font-size: 15px; color: var(--text); }
 
         /* Card de Exclusão */
-        .doc-card.danger:hover { border-color: var(--danger); background: #fef2f2; }
+        .doc-card.danger:hover { border-color: var(--danger); background: #fef2f2; box-shadow: 0 6px 12px -2px rgba(239,68,68,0.15); }
         .doc-card.danger i { color: var(--danger); }
         
         /* Header Usuário */
-        .user-header { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; font-size: 14px; border: 1px solid var(--border); }
-        .user-info { font-weight: 600; color: var(--primary-dark); }
-        .logout-btn { color: var(--danger); cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .user-header { display: flex; justify-content: space-between; align-items: center; background: #f4f8fc; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; font-size: 14px; border: 1px solid var(--primary-light); }
+        .user-info { font-weight: 600; color: var(--primary); display: flex; align-items: center; }
+        .logout-btn { color: var(--danger); cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 5px; transition: 0.2s; background: #fff; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--danger); }
+        .logout-btn:hover { background-color: var(--danger); color: white; }
         
         /* Área Restrita */
         .ci-item { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border); border-left: 5px solid var(--primary); transition: 0.2s; }
-        .ci-item:hover { background: #f8fafc; }
+        .ci-item:hover { background: #f4f8fc; border-left-color: var(--primary-dark); }
         .ci-item.exclusao { border-left-color: var(--danger); }
+        .ci-item.exclusao:hover { background: #fef2f2; border-left-color: #b91c1c; }
         .ci-details { display: none; background: #f1f5f9; padding: 16px; border-radius: 0 0 8px 8px; margin-top: -12px; margin-bottom: 12px; font-size: 14px; line-height: 1.8; border: 1px solid var(--border); border-top: none; }
         
         /* Toast */
@@ -78,6 +85,9 @@
 
         @media (max-width: 600px) {
             .form-row { flex-direction: column; gap: 0; }
+            .user-header { flex-direction: column; gap: 15px; }
+            .user-info { flex-direction: column; text-align: center; gap: 10px; }
+            .logo-header { margin-right: 0; }
         }
     </style>
 </head>
@@ -86,7 +96,8 @@
 <div class="container">
     <!-- TELA LOGIN -->
     <div id="pageLogin" class="page active">
-        <h2><i class="fa-solid fa-laptop-medical"></i> Portal CI - Gestão</h2>
+        <img src="prefeitura.png" alt="Logo Prefeitura" class="logo-login">
+        <h2>Portal CI - Gestão</h2>
         <form id="formLogin">
             <div class="form-group"><label>Usuário</label><input type="text" id="loginUser" required></div>
             <div class="form-group"><label>Senha</label><input type="password" id="loginPass" required></div>
@@ -97,7 +108,10 @@
     <!-- TELA MENU -->
     <div id="pageIndex" class="page">
         <div class="user-header">
-            <div class="user-info"><i class="fa-solid fa-user-circle"></i> <span id="lblUser"></span></div>
+            <div class="user-info">
+                <img src="prefeitura.png" alt="Logo Prefeitura" class="logo-header">
+                <span><i class="fa-solid fa-user-circle"></i> Olá, <span id="lblUser"></span></span>
+            </div>
             <div class="logout-btn" onclick="logout()"><i class="fa-solid fa-power-off"></i> Sair</div>
         </div>
         <h3>O que você deseja solicitar?</h3>
@@ -158,19 +172,27 @@
             </div>
 
             <!-- Campos Específicos "Novo Profissional" -->
-            <div class="dynamic-field form-row" id="groupNovoProfissional">
-                <div class="form-col form-group" style="margin-bottom:0;">
-                    <label>Tipo de Vínculo</label>
-                    <select id="profVinculo">
-                        <option value="" disabled selected>Selecione...</option>
-                        <option value="Processo Seletivo">Processo Seletivo</option>
-                        <option value="Residente">Residente</option>
-                        <option value="Estatutário">Estatutário</option>
-                    </select>
+            <div class="dynamic-field" id="groupNovoProfissional">
+                <div class="form-row">
+                    <div class="form-col form-group" style="margin-bottom:0;">
+                        <label>Tipo de Vínculo</label>
+                        <select id="profVinculo">
+                            <option value="" disabled selected>Selecione...</option>
+                            <option value="Processo Seletivo">Processo Seletivo</option>
+                            <option value="Residente">Residente</option>
+                            <option value="Estatutário">Estatutário</option>
+                        </select>
+                    </div>
+                    <div class="form-col form-group" style="margin-bottom:0;">
+                        <label>Carga Horária Semanal</label>
+                        <input type="text" id="profCargaHoraria" placeholder="Ex: 40h">
+                    </div>
                 </div>
-                <div class="form-col form-group" style="margin-bottom:0;">
-                    <label>Carga Horária Semanal</label>
-                    <input type="text" id="profCargaHoraria" placeholder="Ex: 40h">
+                <div class="form-row" style="margin-top: 15px;">
+                    <div class="form-col form-group" style="margin-bottom:0;">
+                        <label style="color: var(--primary);"><i class="fa-regular fa-calendar-check"></i> Data de Entrada</label>
+                        <input type="date" id="profDataEntrada">
+                    </div>
                 </div>
             </div>
 
@@ -329,13 +351,14 @@
         const grpDes = document.getElementById("groupUnidadeDestino");
         
         // Reset defaults
-        grpNovo.style.display = "none"; document.getElementById("profVinculo").required = false; document.getElementById("profCargaHoraria").required = false;
+        grpNovo.style.display = "none"; document.getElementById("profVinculo").required = false; document.getElementById("profCargaHoraria").required = false; document.getElementById("profDataEntrada").required = false;
         grpDeslig.style.display = "none"; document.getElementById("profDataDesligamento").required = false;
         
         if (tipo === "Novo Profissional") {
-            grpNovo.style.display = "flex";
+            grpNovo.style.display = "block"; // Usando block porque agora tem múltiplas linhas no HTML
             document.getElementById("profVinculo").required = true;
             document.getElementById("profCargaHoraria").required = true;
+            document.getElementById("profDataEntrada").required = true; // Torna Data de Entrada obrigatória
             
             grpAtu.style.display = "none"; document.getElementById("unidadeAtual").required = false;
             grpDes.style.display = "block"; document.getElementById("unidadeDestino").required = true;
@@ -386,7 +409,7 @@
         if (tipoDocumentoAtual === "Troca Temporária") uAtual = "Não se aplica (Temporária)";
         if (tipoDocumentoAtual === "Exclusão de Profissional") uDest = "Desligamento";
 
-        // Coleta os novos campos, enviando "Não se aplica" caso não estejam visíveis
+        // Coleta os novos campos
         const payload = {
             action: "enviarCI",
             remetente: usuarioLogado.usuario,
@@ -395,13 +418,15 @@
             cbo: document.getElementById("profCbo").value,
             cpf: document.getElementById("profCpf").value,
             
-            // Novos campos no Payload (ATENÇÃO: Mapear no Google Apps Script / Planilha)
             conselho: document.getElementById("groupConselho").style.display !== "none" ? document.getElementById("profConselho").value : "Não se aplica",
             area: document.getElementById("groupACS").style.display !== "none" ? document.getElementById("profArea").value : "Não se aplica",
             microArea: document.getElementById("groupACS").style.display !== "none" ? document.getElementById("profMicroArea").value : "Não se aplica",
             vinculo: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profVinculo").value : "Não se aplica",
             cargaHoraria: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profCargaHoraria").value : "Não se aplica",
             dataDesligamento: document.getElementById("groupDataDesligamento").style.display !== "none" ? document.getElementById("profDataDesligamento").value : "Não se aplica",
+            
+            // Nova variável enviada
+            dataEntrada: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profDataEntrada").value : "Não se aplica",
 
             unidadeAtual: uAtual,
             unidadeDestino: uDest,
@@ -414,7 +439,7 @@
             if(data.success) { showToast("Registrado com sucesso!", "success"); voltarIndex(); }
         } catch(err) { showToast("Falha na comunicação.", "error"); } 
         finally { 
-            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar'; 
+            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Documento'; 
             if(tipoDocumentoAtual === "Exclusão de Profissional") btn.style.backgroundColor = "var(--danger)";
         }
     });
@@ -447,13 +472,19 @@
                     
                     let det = document.createElement("div"); det.id = `det-${i}`; det.className = "ci-details";
                     
-                    // Constrói os detalhes (Ocultando o que não se aplica)
+                    // Constrói os detalhes formatados
                     let detalhesExtras = "";
                     if(ci.conselho && ci.conselho !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-id-badge"></i> Conselho:</strong> ${ci.conselho}<br>`;
                     if(ci.vinculo && ci.vinculo !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-file-contract"></i> Vínculo:</strong> ${ci.vinculo} (${ci.cargaHoraria})<br>`;
                     if(ci.area && ci.area !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-map"></i> ACS:</strong> Área ${ci.area} / Micro ${ci.microArea}<br>`;
+                    
+                    if(ci.dataEntrada && ci.dataEntrada !== "Não se aplica") {
+                        let dObj = ci.dataEntrada.split('-');
+                        let dataFormatada = dObj.length === 3 ? `${dObj[2]}/${dObj[1]}/${dObj[0]}` : ci.dataEntrada;
+                        detalhesExtras += `<strong><i class="fa-regular fa-calendar-check" style="color:var(--primary)"></i> Data Entrada:</strong> ${dataFormatada}<br>`;
+                    }
+
                     if(ci.dataDesligamento && ci.dataDesligamento !== "Não se aplica") {
-                        // Formatar Data YY-MM-DD para DD/MM/YYYY
                         let dObj = ci.dataDesligamento.split('-');
                         let dataFormatada = dObj.length === 3 ? `${dObj[2]}/${dObj[1]}/${dObj[0]}` : ci.dataDesligamento;
                         detalhesExtras += `<strong><i class="fa-regular fa-calendar-xmark" style="color:red"></i> Data Desligamento:</strong> ${dataFormatada}<br>`;
