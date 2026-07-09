@@ -15,7 +15,7 @@
             --border: #cbd5e1;
             --success: #10b981;
             --danger: #ef4444;
-            --danger-hover: #dc2626;
+            --warning: #f59e0b;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -31,10 +31,16 @@
         
         /* Formulários */
         .form-group { margin-bottom: 18px; }
+        .form-row { display: flex; gap: 15px; }
+        .form-col { flex: 1; }
         label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #475569; }
         input, select { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; outline: none; transition: 0.2s; background: #f8fafc; }
         input:focus, select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(2,132,199,0.15); }
         
+        /* Animação para campos dinâmicos */
+        .dynamic-field { display: none; animation: fadeIn 0.3s ease-in-out; background: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px dashed var(--primary); margin-bottom: 18px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
         /* Botões */
         button { width: 100%; padding: 14px; border: none; background-color: var(--primary); color: white; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
         button:hover { background-color: var(--primary-dark); transform: translateY(-1px); }
@@ -49,7 +55,7 @@
         .doc-card i { font-size: 35px; color: var(--primary); margin-bottom: 12px; }
         .doc-card h3 { margin: 0; font-size: 15px; color: var(--text); }
 
-        /* Card de Exclusão (Destaque) */
+        /* Card de Exclusão */
         .doc-card.danger:hover { border-color: var(--danger); background: #fef2f2; }
         .doc-card.danger i { color: var(--danger); }
         
@@ -57,96 +63,123 @@
         .user-header { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; font-size: 14px; border: 1px solid var(--border); }
         .user-info { font-weight: 600; color: var(--primary-dark); }
         .logout-btn { color: var(--danger); cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
-        .logout-btn:hover { color: #b91c1c; }
-
-        /* Estilos da Área Restrita */
-        .ci-item { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border); border-left: 5px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; }
-        .ci-item:hover { border-left-color: var(--primary-dark); background: #f8fafc; }
+        
+        /* Área Restrita */
+        .ci-item { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border); border-left: 5px solid var(--primary); transition: 0.2s; }
+        .ci-item:hover { background: #f8fafc; }
         .ci-item.exclusao { border-left-color: var(--danger); }
-        .ci-item.exclusao:hover { border-left-color: #b91c1c; background: #fef2f2; }
         .ci-details { display: none; background: #f1f5f9; padding: 16px; border-radius: 0 0 8px 8px; margin-top: -12px; margin-bottom: 12px; font-size: 14px; line-height: 1.8; border: 1px solid var(--border); border-top: none; }
         
-        /* Toast Notifications */
-        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); box-shadow: 0 4px 6px rgba(0,0,0,0.2); font-weight: 600; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
+        /* Toast */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
         #toast.show { visibility: visible; opacity: 1; bottom: 40px; }
         #toast.success { background-color: var(--success); }
         #toast.error { background-color: var(--danger); }
 
         @media (max-width: 600px) {
-            .user-header { flex-direction: column; gap: 12px; text-align: center; }
-            .container { padding: 20px; }
+            .form-row { flex-direction: column; gap: 0; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- TELA 1: LOGIN -->
+    <!-- TELA LOGIN -->
     <div id="pageLogin" class="page active">
         <h2><i class="fa-solid fa-laptop-medical"></i> Portal CI - Gestão</h2>
         <form id="formLogin">
-            <div class="form-group">
-                <label>Usuário</label>
-                <input type="text" id="loginUser" required placeholder="Ex: usuario.sobrenome">
-            </div>
-            <div class="form-group">
-                <label>Senha</label>
-                <input type="password" id="loginPass" required placeholder="••••••••">
-            </div>
-            <button type="submit" id="btnLogar"><i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema</button>
+            <div class="form-group"><label>Usuário</label><input type="text" id="loginUser" required></div>
+            <div class="form-group"><label>Senha</label><input type="password" id="loginPass" required></div>
+            <button type="submit" id="btnLogar"><i class="fa-solid fa-right-to-bracket"></i> Acessar</button>
         </form>
     </div>
 
-    <!-- TELA 2: INDEX / SELEÇÃO -->
+    <!-- TELA MENU -->
     <div id="pageIndex" class="page">
         <div class="user-header">
-            <div class="user-info"><i class="fa-solid fa-user-circle"></i> <span id="lblUser"></span> (<span id="lblCargo"></span>)</div>
+            <div class="user-info"><i class="fa-solid fa-user-circle"></i> <span id="lblUser"></span></div>
             <div class="logout-btn" onclick="logout()"><i class="fa-solid fa-power-off"></i> Sair</div>
         </div>
-        
         <h3>O que você deseja solicitar?</h3>
-        
         <div class="doc-options">
             <div class="doc-card" onclick="abrirFormulario('Troca Temporária')">
-                <i class="fa-solid fa-user-clock"></i>
-                <h3>Troca Temporária</h3>
+                <i class="fa-solid fa-user-clock"></i><h3>Troca Temporária</h3>
             </div>
             <div class="doc-card" onclick="abrirFormulario('Troca Permanente')">
-                <i class="fa-solid fa-user-check"></i>
-                <h3>Troca Permanente</h3>
+                <i class="fa-solid fa-user-check"></i><h3>Troca Permanente</h3>
             </div>
             <div class="doc-card" onclick="abrirFormulario('Novo Profissional')">
-                <i class="fa-solid fa-user-plus"></i>
-                <h3>Novo Profissional</h3>
+                <i class="fa-solid fa-user-plus"></i><h3>Novo Profissional</h3>
             </div>
-            <div class="doc-card" onclick="abrirFormulario('Exclusão de Profissional')">
-                <i class="fa-solid fa-user-minus"></i>
-                <h3>Desligamento de Profissional</h3>
+            <div class="doc-card danger" onclick="abrirFormulario('Exclusão de Profissional')">
+                <i class="fa-solid fa-user-minus"></i><h3>Exclusão</h3>
             </div>
         </div>
-        
         <button id="btnAreaRestrita" class="btn-secondary" style="display:none;" onclick="abrirAreaRestrita()">
-            <i class="fa-solid fa-unlock-keyhole"></i> Acesso Restrito: Consultar CI's
+            <i class="fa-solid fa-unlock-keyhole"></i> Acesso Restrito
         </button>
     </div>
 
-    <!-- TELA 3: FORMULÁRIO -->
+    <!-- TELA FORMULÁRIO -->
     <div id="pageForm" class="page">
-        <h2 id="formTitle">Formulário de Envio</h2>
+        <h2 id="formTitle">Formulário</h2>
         <form id="formCI">
             <div class="form-group">
                 <label>Nome Completo do Profissional</label>
-                <input type="text" id="profNome" required placeholder="Digite o nome completo" autocomplete="off">
-            </div>
-            <div class="form-group">
-                <label>Ocupação (CBO)</label>
-                <input type="text" id="profCbo" required placeholder="Ex: Técnico em Enfermagem" autocomplete="off">
-            </div>
-            <div class="form-group">
-                <label>CPF</label>
-                <input type="text" id="profCpf" required placeholder="000.000.000-00" maxlength="14" autocomplete="off">
+                <input type="text" id="profNome" required autocomplete="off">
             </div>
             
+            <div class="form-row">
+                <div class="form-col form-group">
+                    <label>Ocupação (CBO)</label>
+                    <input type="text" id="profCbo" required autocomplete="off" placeholder="Ex: Técnico em Enfermagem" oninput="analisarCBO()">
+                </div>
+                <div class="form-col form-group">
+                    <label>CPF</label>
+                    <input type="text" id="profCpf" required placeholder="000.000.000-00" maxlength="14" autocomplete="off">
+                </div>
+            </div>
+
+            <!-- Campos Condicionais baseados no CBO -->
+            <div class="dynamic-field" id="groupConselho">
+                <label><i class="fa-solid fa-id-card-clip"></i> Número do Conselho (Registro)</label>
+                <input type="text" id="profConselho" placeholder="Ex: COREN 123456 / CRM 12345">
+            </div>
+
+            <div class="dynamic-field form-row" id="groupACS">
+                <div class="form-col form-group" style="margin-bottom:0;">
+                    <label><i class="fa-solid fa-map-location-dot"></i> Área</label>
+                    <input type="text" id="profArea" placeholder="Número/Nome da Área">
+                </div>
+                <div class="form-col form-group" style="margin-bottom:0;">
+                    <label><i class="fa-solid fa-location-crosshairs"></i> Micro-Área</label>
+                    <input type="text" id="profMicroArea" placeholder="Número da Micro-Área">
+                </div>
+            </div>
+
+            <!-- Campos Específicos "Novo Profissional" -->
+            <div class="dynamic-field form-row" id="groupNovoProfissional">
+                <div class="form-col form-group" style="margin-bottom:0;">
+                    <label>Tipo de Vínculo</label>
+                    <select id="profVinculo">
+                        <option value="" disabled selected>Selecione...</option>
+                        <option value="Processo Seletivo">Processo Seletivo</option>
+                        <option value="Residente">Residente</option>
+                        <option value="Estatutário">Estatutário</option>
+                    </select>
+                </div>
+                <div class="form-col form-group" style="margin-bottom:0;">
+                    <label>Carga Horária Semanal</label>
+                    <input type="text" id="profCargaHoraria" placeholder="Ex: 40h">
+                </div>
+            </div>
+
+            <!-- Campo Específico "Exclusão" -->
+            <div class="dynamic-field" id="groupDataDesligamento" style="border-color: var(--danger); background: #fef2f2;">
+                <label style="color: var(--danger);"><i class="fa-regular fa-calendar-xmark"></i> Data de Desligamento</label>
+                <input type="date" id="profDataDesligamento">
+            </div>
+
             <div class="form-group" id="groupUnidadeAtual">
                 <label id="lblUnidadeAtual">Unidade Atual</label>
                 <select id="unidadeAtual" onchange="verificarEquipe()"></select>
@@ -154,7 +187,7 @@
             
             <div class="form-group" id="groupUnidadeDestino">
                 <label id="lblUnidadeDestino">Unidade Destino</label>
-                <select id="unidadeDestino" required onchange="verificarEquipe()"></select>
+                <select id="unidadeDestino" onchange="verificarEquipe()"></select>
             </div>
             
             <div class="form-group" id="groupEquipe">
@@ -166,15 +199,15 @@
             </div>
             
             <button type="submit" id="btnEnviar"><i class="fa-solid fa-paper-plane"></i> Enviar Documento</button>
-            <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Cancelar / Voltar</button>
+            <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Cancelar</button>
         </form>
     </div>
 
-    <!-- TELA 4: ÁREA RESTRITA -->
+    <!-- TELA ÁREA RESTRITA -->
     <div id="pageRestrita" class="page">
         <h2><i class="fa-solid fa-shield-halved"></i> CI's Recebidas</h2>
         <div id="listaCIs" style="margin-bottom: 20px;">Carregando histórico...</div>
-        <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Voltar ao Menu</button>
+        <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
     </div>
 </div>
 
@@ -207,13 +240,13 @@
         "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA"
     ];
 
-    function showToast(message, type = "success") {
+    function showToast(msg, tipo = "success") {
         const toast = document.getElementById("toast");
-        toast.innerText = message;
-        toast.className = `show ${type}`;
-        setTimeout(() => { toast.className = toast.className.replace(`show ${type}`, ""); }, 3500);
+        toast.innerText = msg; toast.className = `show ${tipo}`;
+        setTimeout(() => toast.className = "", 3500);
     }
 
+    // Mascara CPF
     document.getElementById("profCpf").addEventListener("input", function(e) {
         let v = e.target.value.replace(/\D/g, "");
         if (v.length > 11) v = v.substring(0, 11);
@@ -223,196 +256,165 @@
         e.target.value = v;
     });
 
+    // Analisa as palavras do CBO para exibir Conselho ou Área/Micro-área
+    function analisarCBO() {
+        const cboText = document.getElementById("profCbo").value.toLowerCase();
+        
+        // Regra do Conselho (Registro)
+        const profissoesConselho = ["médic", "medic", "enferm", "nutricionist", "dentist", "odont", "psicólog", "psicolog", "fisioterapeut"];
+        const exigeConselho = profissoesConselho.some(p => cboText.includes(p));
+        
+        document.getElementById("groupConselho").style.display = exigeConselho ? "block" : "none";
+        document.getElementById("profConselho").required = exigeConselho;
+
+        // Regra do Agente Comunitário (ACS)
+        const exigeACS = cboText.includes("agente comunit") || cboText.includes("acs");
+        
+        document.getElementById("groupACS").style.display = exigeACS ? "flex" : "none";
+        document.getElementById("profArea").required = exigeACS;
+        document.getElementById("profMicroArea").required = exigeACS;
+    }
+
     function carregarUnidades() {
         const atual = document.getElementById("unidadeAtual");
         const destino = document.getElementById("unidadeDestino");
-        atual.innerHTML = '<option value="" disabled selected>Selecione uma unidade...</option>';
-        destino.innerHTML = '<option value="" disabled selected>Selecione uma unidade...</option>';
-        
-        unidades.forEach(u => {
-            atual.options.add(new Option(u, u));
-            destino.options.add(new Option(u, u));
-        });
+        atual.innerHTML = '<option value="" disabled selected>Selecione...</option>';
+        destino.innerHTML = '<option value="" disabled selected>Selecione...</option>';
+        unidades.forEach(u => { atual.options.add(new Option(u, u)); destino.options.add(new Option(u, u)); });
     }
 
-    // Avalia a Equipe com base na origem ou destino dependendo da CI
     function verificarEquipe() {
-        let unidadeAlvo = "";
-        
-        // Se for Exclusão, a equipe avaliada é a Atual (de onde ele está saindo). 
-        // Caso contrário, é o Destino (para onde ele está indo).
-        if (tipoDocumentoAtual === "Exclusão de Profissional") {
-            unidadeAlvo = document.getElementById("unidadeAtual").value;
-        } else {
-            unidadeAlvo = document.getElementById("unidadeDestino").value;
-        }
+        let alvo = (tipoDocumentoAtual === "Exclusão de Profissional") 
+            ? document.getElementById("unidadeAtual").value 
+            : document.getElementById("unidadeDestino").value;
 
-        const groupEquipe = document.getElementById("groupEquipe");
-        
-        if (!unidadeAlvo || semEquipe.includes(unidadeAlvo)) {
-            groupEquipe.style.display = "none";
-        } else {
-            groupEquipe.style.display = "block";
-        }
+        const group = document.getElementById("groupEquipe");
+        group.style.display = (!alvo || semEquipe.includes(alvo)) ? "none" : "block";
     }
 
-    function navegar(idTela) {
+    function navegar(tela) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(idTela).classList.add('active');
+        document.getElementById(tela).classList.add('active');
     }
 
     document.getElementById("formLogin").addEventListener("submit", async function(e) {
         e.preventDefault();
         const btn = document.getElementById("btnLogar");
-        const user = document.getElementById("loginUser").value;
+        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
         
-        btn.disabled = true; 
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
-        
-        const payload = {
-            action: "login",
-            usuario: user,
-            senha: document.getElementById("loginPass").value
-        };
-
         try {
-            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "login", usuario: document.getElementById("loginUser").value, senha: document.getElementById("loginPass").value }) });
             let data = await res.json();
-            
             if(data.success) {
                 usuarioLogado = data;
                 document.getElementById("lblUser").innerText = data.usuario.toUpperCase();
-                document.getElementById("lblCargo").innerText = data.cargo;
                 document.getElementById("btnAreaRestrita").style.display = data.admin ? "flex" : "none";
-                
-                showToast(`Bem-vindo(a), ${data.usuario}!`, "success");
-                navegar("pageIndex");
-                carregarUnidades();
-            } else {
-                showToast(data.message || "Usuário ou senha inválidos.", "error");
-            }
-        } catch(err) {
-            showToast("Erro ao conectar com o banco de dados.", "error");
-        } finally {
-            btn.disabled = false; 
-            btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema';
-        }
+                showToast(`Bem-vindo, ${data.usuario}!`, "success");
+                navegar("pageIndex"); carregarUnidades();
+            } else showToast("Credenciais inválidas.", "error");
+        } catch(err) { showToast("Erro de conexão.", "error"); } 
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Acessar'; }
     });
 
     function abrirFormulario(tipo) {
         tipoDocumentoAtual = tipo;
         document.getElementById("formTitle").innerText = `Solicitação: ${tipo}`;
-        
-        const groupUnidadeAtual = document.getElementById("groupUnidadeAtual");
-        const groupUnidadeDestino = document.getElementById("groupUnidadeDestino");
-        const inputUnidadeAtual = document.getElementById("unidadeAtual");
-        const inputUnidadeDestino = document.getElementById("unidadeDestino");
-        const lblUnidadeDestino = document.getElementById("lblUnidadeDestino");
-        const lblEquipe = document.getElementById("lblEquipe");
-        const btnEnviar = document.getElementById("btnEnviar");
+        document.getElementById("formCI").reset();
+        analisarCBO(); // Reseta os campos dinâmicos do CBO
 
-        // Reseta os campos
-        inputUnidadeAtual.value = "";
-        inputUnidadeDestino.value = "";
-        document.getElementById("groupEquipe").style.display = "none";
+        // Controle de Exibição dos Blocos
+        const grpNovo = document.getElementById("groupNovoProfissional");
+        const grpDeslig = document.getElementById("groupDataDesligamento");
+        const grpAtu = document.getElementById("groupUnidadeAtual");
+        const grpDes = document.getElementById("groupUnidadeDestino");
         
-        // Estilo de perigo para o botão enviar caso seja exclusão
-        if(tipo === "Exclusão de Profissional") {
-            btnEnviar.style.backgroundColor = "var(--danger)";
-        } else {
-            btnEnviar.style.backgroundColor = "var(--primary)";
-        }
+        // Reset defaults
+        grpNovo.style.display = "none"; document.getElementById("profVinculo").required = false; document.getElementById("profCargaHoraria").required = false;
+        grpDeslig.style.display = "none"; document.getElementById("profDataDesligamento").required = false;
+        
+        if (tipo === "Novo Profissional") {
+            grpNovo.style.display = "flex";
+            document.getElementById("profVinculo").required = true;
+            document.getElementById("profCargaHoraria").required = true;
+            
+            grpAtu.style.display = "none"; document.getElementById("unidadeAtual").required = false;
+            grpDes.style.display = "block"; document.getElementById("unidadeDestino").required = true;
+            document.getElementById("lblUnidadeDestino").innerText = "Unidade de Lotação";
+            document.getElementById("lblEquipe").innerText = "Equipe de Lotação";
+            document.getElementById("btnEnviar").style.backgroundColor = "var(--primary)";
 
-        // Configuração dos campos baseado no tipo
-        if (tipo === "Exclusão de Profissional") {
-            groupUnidadeAtual.style.display = "block";
-            inputUnidadeAtual.required = true;
+        } else if (tipo === "Exclusão de Profissional") {
+            grpDeslig.style.display = "block";
+            document.getElementById("profDataDesligamento").required = true;
             
-            groupUnidadeDestino.style.display = "none";
-            inputUnidadeDestino.required = false;
-            
-            lblEquipe.innerText = "Equipe Atual";
-            
-        } else if (tipo === "Novo Profissional" || tipo === "Troca Temporária") {
-            groupUnidadeAtual.style.display = "none";
-            inputUnidadeAtual.required = false;
-            
-            groupUnidadeDestino.style.display = "block";
-            inputUnidadeDestino.required = true;
-            
-            lblUnidadeDestino.innerText = (tipo === "Novo Profissional") ? "Unidade de Lotação" : "Unidade Destino";
-            lblEquipe.innerText = "Equipe de Lotação";
+            grpAtu.style.display = "block"; document.getElementById("unidadeAtual").required = true;
+            grpDes.style.display = "none"; document.getElementById("unidadeDestino").required = false;
+            document.getElementById("lblEquipe").innerText = "Equipe Atual";
+            document.getElementById("btnEnviar").style.backgroundColor = "var(--danger)";
+
+        } else if (tipo === "Troca Temporária") {
+            grpAtu.style.display = "none"; document.getElementById("unidadeAtual").required = false;
+            grpDes.style.display = "block"; document.getElementById("unidadeDestino").required = true;
+            document.getElementById("lblUnidadeDestino").innerText = "Unidade Destino";
+            document.getElementById("lblEquipe").innerText = "Equipe de Lotação";
+            document.getElementById("btnEnviar").style.backgroundColor = "var(--primary)";
             
         } else { // Troca Permanente
-            groupUnidadeAtual.style.display = "block";
-            inputUnidadeAtual.required = true;
-            
-            groupUnidadeDestino.style.display = "block";
-            inputUnidadeDestino.required = true;
-            
-            lblUnidadeDestino.innerText = "Nova Unidade (Destino)";
-            lblEquipe.innerText = "Nova Equipe (Destino)";
+            grpAtu.style.display = "block"; document.getElementById("unidadeAtual").required = true;
+            grpDes.style.display = "block"; document.getElementById("unidadeDestino").required = true;
+            document.getElementById("lblUnidadeDestino").innerText = "Nova Unidade (Destino)";
+            document.getElementById("lblEquipe").innerText = "Nova Equipe (Destino)";
+            document.getElementById("btnEnviar").style.backgroundColor = "var(--primary)";
         }
 
-        navegar("pageForm");
-        verificarEquipe();
+        navegar("pageForm"); verificarEquipe();
     }
 
-    function voltarIndex() { navegar("pageIndex"); document.getElementById("formCI").reset(); }
-    
-    function logout() { 
-        usuarioLogado = null; 
-        document.getElementById("formLogin").reset();
-        navegar("pageLogin"); 
-        showToast("Você saiu do sistema.", "success");
-    }
+    function voltarIndex() { navegar("pageIndex"); }
+    function logout() { usuarioLogado = null; navegar("pageLogin"); document.getElementById("formLogin").reset(); }
 
     document.getElementById("formCI").addEventListener("submit", async function(e) {
         e.preventDefault();
-        
-        const cpfInput = document.getElementById("profCpf").value;
-        if(cpfInput.length !== 14) {
-            showToast("O CPF digitado está incompleto.", "error");
-            return;
-        }
+        if(document.getElementById("profCpf").value.length !== 14) return showToast("CPF incompleto.", "error");
 
         const btn = document.getElementById("btnEnviar");
-        btn.disabled = true; 
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registrando no Sistema...';
+        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registrando...';
 
-        // Prepara os dados de envio adequados
-        let valUnidadeAtual = document.getElementById("unidadeAtual").value;
-        let valUnidadeDestino = document.getElementById("unidadeDestino").value;
+        let uAtual = document.getElementById("unidadeAtual").value;
+        let uDest = document.getElementById("unidadeDestino").value;
+        if (tipoDocumentoAtual === "Novo Profissional") uAtual = "Admissão Nova";
+        if (tipoDocumentoAtual === "Troca Temporária") uAtual = "Não se aplica (Temporária)";
+        if (tipoDocumentoAtual === "Exclusão de Profissional") uDest = "Desligamento";
 
-        if (tipoDocumentoAtual === "Novo Profissional") valUnidadeAtual = "Admissão Nova";
-        if (tipoDocumentoAtual === "Troca Temporária") valUnidadeAtual = "Não se aplica (Temporária)";
-        if (tipoDocumentoAtual === "Exclusão de Profissional") valUnidadeDestino = "Desligamento";
-
+        // Coleta os novos campos, enviando "Não se aplica" caso não estejam visíveis
         const payload = {
             action: "enviarCI",
             remetente: usuarioLogado.usuario,
             tipoTroca: tipoDocumentoAtual,
             nomeProfissional: document.getElementById("profNome").value.toUpperCase(),
             cbo: document.getElementById("profCbo").value,
-            cpf: cpfInput,
-            unidadeAtual: valUnidadeAtual,
-            unidadeDestino: valUnidadeDestino,
+            cpf: document.getElementById("profCpf").value,
+            
+            // Novos campos no Payload (ATENÇÃO: Mapear no Google Apps Script / Planilha)
+            conselho: document.getElementById("groupConselho").style.display !== "none" ? document.getElementById("profConselho").value : "Não se aplica",
+            area: document.getElementById("groupACS").style.display !== "none" ? document.getElementById("profArea").value : "Não se aplica",
+            microArea: document.getElementById("groupACS").style.display !== "none" ? document.getElementById("profMicroArea").value : "Não se aplica",
+            vinculo: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profVinculo").value : "Não se aplica",
+            cargaHoraria: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profCargaHoraria").value : "Não se aplica",
+            dataDesligamento: document.getElementById("groupDataDesligamento").style.display !== "none" ? document.getElementById("profDataDesligamento").value : "Não se aplica",
+
+            unidadeAtual: uAtual,
+            unidadeDestino: uDest,
             equipe: document.getElementById("groupEquipe").style.display === "none" ? "Não se aplica" : document.getElementById("profEquipe").value
         };
 
         try {
             let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
             let data = await res.json();
-            if(data.success) {
-                showToast("Documento enviado e registrado com sucesso!", "success");
-                document.getElementById("formCI").reset();
-                voltarIndex();
-            }
-        } catch(err) {
-            showToast("Falha na comunicação. Tente novamente.", "error");
-        } finally {
-            btn.disabled = false; 
-            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Documento';
+            if(data.success) { showToast("Registrado com sucesso!", "success"); voltarIndex(); }
+        } catch(err) { showToast("Falha na comunicação.", "error"); } 
+        finally { 
+            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar'; 
             if(tipoDocumentoAtual === "Exclusão de Profissional") btn.style.backgroundColor = "var(--danger)";
         }
     });
@@ -420,7 +422,7 @@
     async function abrirAreaRestrita() {
         navegar("pageRestrita");
         const lista = document.getElementById("listaCIs");
-        lista.innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><br>Buscando histórico...</div>';
+        lista.innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
 
         try {
             let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "listarCIs" }) });
@@ -428,56 +430,49 @@
             
             if(resData.success) {
                 lista.innerHTML = "";
-                let dadosInvertidos = resData.dados.reverse();
-
-                if(dadosInvertidos.length === 0) { 
-                    lista.innerHTML = "<div style='text-align:center; color:#64748b;'>Nenhum documento registrado até o momento.</div>"; 
-                    return; 
-                }
+                let dados = resData.dados.reverse();
+                if(dados.length === 0) return lista.innerHTML = "<div style='text-align:center;'>Nenhum registro.</div>"; 
                 
-                dadosInvertidos.forEach((ci, index) => {
+                dados.forEach((ci, i) => {
                     let item = document.createElement("div");
-                    item.className = "ci-item";
-                    if (ci.tipoTroca === "Exclusão de Profissional") item.classList.add("exclusao");
+                    item.className = "ci-item" + (ci.tipoTroca === "Exclusão de Profissional" ? " exclusao" : "");
                     
-                    let icon = "fa-file-lines";
-                    if(ci.tipoTroca === "Novo Profissional") icon = "fa-user-plus";
-                    if(ci.tipoTroca === "Troca Temporária") icon = "fa-clock";
-                    if(ci.tipoTroca === "Troca Permanente") icon = "fa-check-double";
-                    if(ci.tipoTroca === "Exclusão de Profissional") icon = "fa-user-minus";
+                    let ic = ci.tipoTroca === "Novo Profissional" ? "fa-user-plus" : ci.tipoTroca === "Exclusão de Profissional" ? "fa-user-minus" : "fa-file-lines";
+                    let cor = ci.tipoTroca === "Exclusão de Profissional" ? "var(--danger)" : "var(--primary)";
 
-                    let corIcone = ci.tipoTroca === "Exclusão de Profissional" ? "var(--danger)" : "var(--primary)";
+                    item.innerHTML = `<i class="fa-solid ${ic}" style="color:${cor}; margin-right:8px;"></i> <strong>${ci.nomeProfissional}</strong>
+                                      <div style="font-size:12px; color:#64748b; margin-top:4px;">${ci.tipoTroca} • ${ci.dataHora}</div>`;
+                    
+                    item.onclick = () => { let d = document.getElementById(`det-${i}`); d.style.display = d.style.display === "block" ? "none" : "block"; };
+                    
+                    let det = document.createElement("div"); det.id = `det-${i}`; det.className = "ci-details";
+                    
+                    // Constrói os detalhes (Ocultando o que não se aplica)
+                    let detalhesExtras = "";
+                    if(ci.conselho && ci.conselho !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-id-badge"></i> Conselho:</strong> ${ci.conselho}<br>`;
+                    if(ci.vinculo && ci.vinculo !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-file-contract"></i> Vínculo:</strong> ${ci.vinculo} (${ci.cargaHoraria})<br>`;
+                    if(ci.area && ci.area !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-map"></i> ACS:</strong> Área ${ci.area} / Micro ${ci.microArea}<br>`;
+                    if(ci.dataDesligamento && ci.dataDesligamento !== "Não se aplica") {
+                        // Formatar Data YY-MM-DD para DD/MM/YYYY
+                        let dObj = ci.dataDesligamento.split('-');
+                        let dataFormatada = dObj.length === 3 ? `${dObj[2]}/${dObj[1]}/${dObj[0]}` : ci.dataDesligamento;
+                        detalhesExtras += `<strong><i class="fa-regular fa-calendar-xmark" style="color:red"></i> Data Desligamento:</strong> ${dataFormatada}<br>`;
+                    }
 
-                    item.innerHTML = `<i class="fa-solid ${icon}" style="color:${corIcone}; margin-right:8px;"></i> 
-                                      <strong>${ci.nomeProfissional}</strong>
-                                      <div style="font-size:12px; color:#64748b; margin-top:4px;">
-                                        ${ci.tipoTroca} • Solicitado em: ${ci.dataHora}
-                                      </div>`;
-                    
-                    item.onclick = () => {
-                        let det = document.getElementById(`det-${index}`);
-                        det.style.display = det.style.display === "block" ? "none" : "block";
-                    };
-                    
-                    let det = document.createElement("div");
-                    det.id = `det-${index}`;
-                    det.className = "ci-details";
                     det.innerHTML = `
-                        <strong><i class="fa-solid fa-user-tie"></i> Solicitante:</strong> ${ci.remetente}<br>
+                        <strong><i class="fa-solid fa-user-tie"></i> Solic.:</strong> ${ci.remetente}<br>
                         <strong><i class="fa-solid fa-id-card"></i> CPF:</strong> ${ci.cpf}<br>
-                        <strong><i class="fa-solid fa-briefcase-medical"></i> CBO:</strong> ${ci.cbo}<br><hr style="border-top:1px solid #cbd5e1; margin:8px 0;">
-                        <strong><i class="fa-solid fa-building"></i> Origem/Atual:</strong> ${ci.unidadeAtual}<br>
-                        <strong><i class="fa-solid fa-hospital"></i> Destino/Lotação:</strong> ${ci.unidadeDestino}<br>
+                        <strong><i class="fa-solid fa-briefcase-medical"></i> CBO:</strong> ${ci.cbo}<br>
+                        ${detalhesExtras}
+                        <hr style="border-top:1px solid #cbd5e1; margin:8px 0;">
+                        <strong><i class="fa-solid fa-building"></i> Origem:</strong> ${ci.unidadeAtual}<br>
+                        <strong><i class="fa-solid fa-hospital"></i> Destino:</strong> ${ci.unidadeDestino}<br>
                         <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${ci.equipe}
                     `;
-                    
-                    lista.appendChild(item);
-                    lista.appendChild(det);
+                    lista.append(item, det);
                 });
             }
-        } catch(err) {
-            lista.innerHTML = "<div style='color:red; text-align:center;'>Erro ao consultar banco de dados. Verifique sua conexão.</div>";
-        }
+        } catch(err) { lista.innerHTML = "<div style='color:red; text-align:center;'>Erro de conexão.</div>"; }
     }
 </script>
 </body>
