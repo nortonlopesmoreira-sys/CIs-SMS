@@ -83,7 +83,9 @@
         .btn-valida:hover { border-color: var(--primary); color: var(--primary); background: #f4f8fc; box-shadow: none; transform: none; }
         .btn-valida.ok { background: var(--success); border-color: var(--success); color: #fff; }
         .btn-valida.ok:hover { background: #059669; }
-        
+        .search-bar { position: relative; margin-bottom: 20px; display: none; animation: fadeIn 0.3s ease; }
+        .search-bar i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 15px; }
+        .search-bar input { padding-left: 40px; background: #fff; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         /* Classe para o texto de auditoria abaixo do botão */
         .audit-info { display: block; font-size: 11.5px; font-weight: 500; color: #64748b; margin-top: 6px; text-align: center; }
 
@@ -186,8 +188,11 @@
                         <select id="profVinculo">
                             <option value="" disabled selected>Selecione...</option>
                             <option value="Processo Seletivo">Processo Seletivo</option>
-                            <option value="Residente">Residente</option>
                             <option value="Estatutário">Estatutário</option>
+                            <option value="UnipampaDocente">Unipampa Docente</option>
+                            <option value="UnipampaResidente">Unipampa Residente</option>
+                            <option value="UnoparDocente">Unopar Docente</option>
+                            <option value="UnoparResidente">Unopar Residente</option>
                         </select>
                     </div>
                     <div class="form-col form-group" style="margin-bottom:0;">
@@ -260,6 +265,11 @@
                 <i class="fa-solid fa-check-double"></i> Histórico
             </button>
         </div>
+        <!-- NOVA BARRA DE PESQUISA -->
+        <div class="search-bar" id="searchContainer">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="inputBuscaCI" placeholder="Buscar por palavra-chave (Ex: Residente, Médico, CPF...)" oninput="aplicarFiltros()">
+        </div>
 
         <div id="listaCIs" style="margin-bottom: 20px;">Carregando histórico...</div>
         <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Voltar ao Menu</button>
@@ -327,8 +337,19 @@
 
     function analisarCBO() {
         const cboText = document.getElementById("profCbo").value.toLowerCase();
-        // Adicionado "bucal" e "asb" à lista de validação
-        const exigeConselho = ["médic", "medic", "enferm", "nutricionist", "dentist", "odont", "psicólog", "psicolog", "fisioterapeut", "bucal", "asb"].some(p => cboText.includes(p));
+        
+        // Verifica se a profissão exige conselho por padrão
+        let exigeConselho = ["médic", "medic", "enferm", "nutricionist", "dentist", "odont", "psicólog", "psicolog", "fisioterapeut", "bucal", "asb"].some(p => cboText.includes(p));
+
+        // NOVA LÓGICA: Se for Troca Temporária (ou Exclusão), anula a exigência do conselho
+        if (tipoDocumentoAtual === "Troca Temporária" || tipoDocumentoAtual === "Exclusão de Profissional") {
+            exigeConselho = false;
+        }
+
+        if (tipoDocumentoAtual === "Troca Permanente" || tipoDocumentoAtual === "Exclusão de Profissional") {
+            exigeConselho = false;
+        }
+
         document.getElementById("groupConselho").style.display = exigeConselho ? "block" : "none";
         document.getElementById("profConselho").required = exigeConselho;
 
@@ -547,9 +568,32 @@
         document.getElementById('btnTabPendentes').classList.toggle('active', abaAtual === 'pendentes');
         document.getElementById('btnTabHistorico').classList.toggle('active', abaAtual === 'historico');
         
+        // Exibe a barra de pesquisa apenas na aba de Histórico (como solicitado)
+        document.getElementById('searchContainer').style.display = (abaAtual === 'historico') ? 'block' : 'none';
+        
+        // Limpa a pesquisa anterior ao trocar de aba
+        document.getElementById('inputBuscaCI').value = "";
+        
+        aplicarFiltros();
+    }
+
+    function aplicarFiltros() {
+        const termoBusca = document.getElementById('inputBuscaCI').value.toLowerCase();
+        
         let listaFiltrada = bancoDadosCIs.filter(ci => {
+            // 1. Filtro da Aba (Pendente vs Concluído)
             let concluido = (ci.statusCNES === true && ci.statusCELK === true);
-            return abaAtual === 'historico' ? concluido : !concluido;
+            let passaAba = (abaAtual === 'historico') ? concluido : !concluido;
+            
+            // 2. Filtro da Lupa (Pesquisa Global)
+            let passaBusca = true;
+            if (termoBusca !== "") {
+                // Junta todos os valores do objeto (nome, cbo, vinculo, etc) em um único texto para procurar
+                let textoDaCI = Object.values(ci).join(" ").toLowerCase();
+                passaBusca = textoDaCI.includes(termoBusca);
+            }
+
+            return passaAba && passaBusca;
         });
 
         renderizarCIs(listaFiltrada);
