@@ -7,9 +7,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary: #05316e; /* Azul Institucional Solicitado */
-            --primary-dark: #031c40; /* Tom mais escuro para hover */
-            --primary-light: #0f52b3; /* Tom um pouco mais claro para detalhes */
+            --primary: #05316e;
+            --primary-dark: #031c40;
+            --primary-light: #0f52b3;
             --bg: #f1f5f9;
             --card-bg: #ffffff;
             --text: #1e293b;
@@ -24,17 +24,14 @@
         
         .container { width: 100%; max-width: 850px; background: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: 0 10px 20px -5px rgba(5, 49, 110, 0.15); transition: all 0.3s ease; }
         
-        /* Estilos do Logo */
         .logo-login { display: block; margin: 0 auto 20px; max-width: 140px; height: auto; }
         .logo-header { max-width: 50px; height: auto; margin-right: 15px; }
         
         h2, h3 { margin-bottom: 24px; color: var(--primary); text-align: center; font-weight: 700; }
         
-        /* Controle de Telas (Fade In) */
         .page { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
         .page.active { display: block; opacity: 1; }
         
-        /* Formulários */
         .form-group { margin-bottom: 18px; }
         .form-row { display: flex; gap: 15px; }
         .form-col { flex: 1; }
@@ -42,42 +39,54 @@
         input, select { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; outline: none; transition: 0.2s; background: #f8fafc; }
         input:focus, select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(5,49,110,0.15); }
         
-        /* Animação para campos dinâmicos */
         .dynamic-field { display: none; animation: fadeIn 0.3s ease-in-out; background: #f4f8fc; padding: 15px; border-radius: 8px; border: 1px dashed var(--primary-light); margin-bottom: 18px; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Botões */
+        /* NOVA FORMATAÇÃO: Múltiplas Unidades Checkbox List - Áreas maiores de clique */
+        .check-list { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+        .check-list label { font-weight: 500; font-size: 15px; display: flex; align-items: center; gap: 12px; margin: 0; cursor: pointer; color: var(--text); padding: 10px; border-radius: 6px; transition: background-color 0.2s; border: 1px solid transparent; }
+        .check-list label:hover { background-color: #f1f5f9; border-color: #e2e8f0; }
+        .check-list input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; margin: 0; accent-color: var(--primary); }
+
         button { width: 100%; padding: 14px; border: none; background-color: var(--primary); color: white; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
         button:hover { background-color: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         button:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
         .btn-secondary { background-color: #64748b; margin-top: 12px; }
         .btn-secondary:hover { background-color: #475569; }
         
-        /* Grid das Opções Iniciais */
         .doc-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; margin-bottom: 20px; }
         .doc-card { border: 2px solid var(--border); border-radius: 12px; padding: 25px 15px; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #fff; }
         .doc-card:hover { border-color: var(--primary); background: #f4f8fc; transform: translateY(-3px); box-shadow: 0 6px 12px -2px rgba(5,49,110,0.1); }
         .doc-card i { font-size: 35px; color: var(--primary); margin-bottom: 12px; }
         .doc-card h3 { margin: 0; font-size: 15px; color: var(--text); }
-
-        /* Card de Exclusão */
         .doc-card.danger:hover { border-color: var(--danger); background: #fef2f2; box-shadow: 0 6px 12px -2px rgba(239,68,68,0.15); }
         .doc-card.danger i { color: var(--danger); }
         
-        /* Header Usuário */
         .user-header { display: flex; justify-content: space-between; align-items: center; background: #f4f8fc; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; font-size: 14px; border: 1px solid var(--primary-light); }
         .user-info { font-weight: 600; color: var(--primary); display: flex; align-items: center; }
         .logout-btn { color: var(--danger); cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 5px; transition: 0.2s; background: #fff; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--danger); }
         .logout-btn:hover { background-color: var(--danger); color: white; }
         
-        /* Área Restrita */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; background: #f1f5f9; padding: 5px; border-radius: 10px; }
+        .tab-btn { flex: 1; padding: 12px; font-size: 14px; background: transparent; color: #64748b; border-radius: 8px; }
+        .tab-btn:hover { background: #e2e8f0; transform: none; box-shadow: none; color: var(--text); }
+        .tab-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
         .ci-item { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border); border-left: 5px solid var(--primary); transition: 0.2s; }
         .ci-item:hover { background: #f4f8fc; border-left-color: var(--primary-dark); }
         .ci-item.exclusao { border-left-color: var(--danger); }
         .ci-item.exclusao:hover { background: #fef2f2; border-left-color: #b91c1c; }
         .ci-details { display: none; background: #f1f5f9; padding: 16px; border-radius: 0 0 8px 8px; margin-top: -12px; margin-bottom: 12px; font-size: 14px; line-height: 1.8; border: 1px solid var(--border); border-top: none; }
         
-        /* Toast */
+        .confirm-actions { display: flex; gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #cbd5e1; }
+        .btn-valida { width: 100%; padding: 10px; font-size: 13px; font-weight: 700; border: 2px solid #cbd5e1; background: #fff; color: #64748b; transition: 0.2s; }
+        .btn-valida:hover { border-color: var(--primary); color: var(--primary); background: #f4f8fc; box-shadow: none; transform: none; }
+        .btn-valida.ok { background: var(--success); border-color: var(--success); color: #fff; }
+        .btn-valida.ok:hover { background: #059669; }
+        
+        /* Classe para o texto de auditoria abaixo do botão */
+        .audit-info { display: block; font-size: 11.5px; font-weight: 500; color: #64748b; margin-top: 6px; text-align: center; }
+
         #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
         #toast.show { visibility: visible; opacity: 1; bottom: 40px; }
         #toast.success { background-color: var(--success); }
@@ -88,15 +97,15 @@
             .user-header { flex-direction: column; gap: 15px; }
             .user-info { flex-direction: column; text-align: center; gap: 10px; }
             .logo-header { margin-right: 0; }
+            .confirm-actions { flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- TELA LOGIN -->
     <div id="pageLogin" class="page active">
-        <img src="prefeitura.png" alt="Logo Prefeitura" class="logo-login">
+        <img src="prefeitura.png" alt="Logo Prefeitura" class="logo-login" onerror="this.style.display='none'">
         <h2>Portal CI - Gestão</h2>
         <form id="formLogin">
             <div class="form-group"><label>Usuário</label><input type="text" id="loginUser" required></div>
@@ -105,11 +114,10 @@
         </form>
     </div>
 
-    <!-- TELA MENU -->
     <div id="pageIndex" class="page">
         <div class="user-header">
             <div class="user-info">
-                <img src="prefeitura.png" alt="Logo Prefeitura" class="logo-header">
+                <img src="prefeitura.png" alt="Logo Prefeitura" class="logo-header" onerror="this.style.display='none'">
                 <span><i class="fa-solid fa-user-circle"></i> Olá, <span id="lblUser"></span></span>
             </div>
             <div class="logout-btn" onclick="logout()"><i class="fa-solid fa-power-off"></i> Sair</div>
@@ -130,11 +138,10 @@
             </div>
         </div>
         <button id="btnAreaRestrita" class="btn-secondary" style="display:none;" onclick="abrirAreaRestrita()">
-            <i class="fa-solid fa-unlock-keyhole"></i> Acesso Restrito
+            <i class="fa-solid fa-unlock-keyhole"></i> Acesso Restrito (Gestão)
         </button>
     </div>
 
-    <!-- TELA FORMULÁRIO -->
     <div id="pageForm" class="page">
         <h2 id="formTitle">Formulário</h2>
         <form id="formCI">
@@ -154,10 +161,10 @@
                 </div>
             </div>
 
-            <!-- Campos Condicionais baseados no CBO -->
+            <!-- Campos CBO Dependentes -->
             <div class="dynamic-field" id="groupConselho">
                 <label><i class="fa-solid fa-id-card-clip"></i> Número do Conselho (Registro)</label>
-                <input type="text" id="profConselho" placeholder="Ex: COREN 123456 / CRM 12345">
+                <input type="text" id="profConselho" placeholder="Ex: COREN 123456 / CRO 12345">
             </div>
 
             <div class="dynamic-field form-row" id="groupACS">
@@ -171,7 +178,7 @@
                 </div>
             </div>
 
-            <!-- Campos Específicos "Novo Profissional" -->
+            <!-- Novo Profissional (Vínculo & Data Entrada) -->
             <div class="dynamic-field" id="groupNovoProfissional">
                 <div class="form-row">
                     <div class="form-col form-group" style="margin-bottom:0;">
@@ -196,7 +203,23 @@
                 </div>
             </div>
 
-            <!-- Campo Específico "Exclusão" -->
+            <!-- Grupo Independente de Múltiplas Unidades (Usado para Novo Prof e Troca Permanente) -->
+            <div class="dynamic-field" id="groupMultiUnidades">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Atua em múltiplas unidades?</label>
+                    <select id="profMultiUnidades" onchange="toggleMultiUnidades()">
+                        <option value="Não">Não</option>
+                        <option value="Sim">Sim</option>
+                    </select>
+                </div>
+                <div class="form-group" id="boxUnidadesSecundarias" style="display:none; margin-top:15px;">
+                    <label>Selecione as Unidades Secundárias (Atuação)</label>
+                    <div class="check-list" id="listaUnidadesSecundarias">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+            </div>
+
             <div class="dynamic-field" id="groupDataDesligamento" style="border-color: var(--danger); background: #fef2f2;">
                 <label style="color: var(--danger);"><i class="fa-regular fa-calendar-xmark"></i> Data de Desligamento</label>
                 <input type="date" id="profDataDesligamento">
@@ -208,7 +231,7 @@
             </div>
             
             <div class="form-group" id="groupUnidadeDestino">
-                <label id="lblUnidadeDestino">Unidade Destino</label>
+                <label id="lblUnidadeDestino">Unidade Principal (Faturamento/Lotação)</label>
                 <select id="unidadeDestino" onchange="verificarEquipe()"></select>
             </div>
             
@@ -227,9 +250,19 @@
 
     <!-- TELA ÁREA RESTRITA -->
     <div id="pageRestrita" class="page">
-        <h2><i class="fa-solid fa-shield-halved"></i> CI's Recebidas</h2>
+        <h2><i class="fa-solid fa-shield-halved"></i> Painel de Controle CI</h2>
+        
+        <div class="tabs">
+            <button class="tab-btn active" id="btnTabPendentes" onclick="mudarAba('pendentes')">
+                <i class="fa-solid fa-clock"></i> Em Aberto
+            </button>
+            <button class="tab-btn" id="btnTabHistorico" onclick="mudarAba('historico')">
+                <i class="fa-solid fa-check-double"></i> Histórico
+            </button>
+        </div>
+
         <div id="listaCIs" style="margin-bottom: 20px;">Carregando histórico...</div>
-        <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+        <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Voltar ao Menu</button>
     </div>
 </div>
 
@@ -240,6 +273,8 @@
 
     let usuarioLogado = null;
     let tipoDocumentoAtual = "";
+    let bancoDadosCIs = []; 
+    let abaAtual = 'pendentes'; 
 
     const unidades = [
         "ESF 01 – RUI RAMOS", "ESF 02 – MARDUQUE", "ESF 03 – CIDADE NOVA", "ESF 04 – COHAB", 
@@ -250,7 +285,7 @@
         "ESF 23 – SANTO ANTÔNIO", "CONSULTORIO NA RUA", "CENTRO DE FISIOTERAPIA", "POLICLÍNICA ADULTO", 
         "POLICLÍNICA INFANTIL", "SAÚDE DA MULHER", "TRATAMENTO FORA DOMICÍLIO", "LABORATÓRIO MUNICIPAL", 
         "AGENDAMENTO", "UNIDADE SENTINELA", "CAPS AD", "CAPS II", "AMBULATÓRIO DE SAÚDE MENTAL", 
-        "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA"
+        "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA", "UNIDADE PRISIONAL"
     ];
 
     const semEquipe = [
@@ -259,8 +294,21 @@
         "ESF 20 – CAIC", "ESF 23 – SANTO ANTÔNIO", "CENTRO DE FISIOTERAPIA", "POLICLÍNICA ADULTO", 
         "POLICLÍNICA INFANTIL", "SAÚDE DA MULHER", "TRATAMENTO FORA DOMICÍLIO", "LABORATÓRIO MUNICIPAL", 
         "AGENDAMENTO", "UNIDADE SENTINELA", "CAPS AD", "CAPS II", "AMBULATÓRIO DE SAÚDE MENTAL", 
-        "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA"
+        "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA", "UNIDADE SENTINELA"
     ];
+
+    function formatarDataBr(dataStr) {
+        if (!dataStr || dataStr === "Não se aplica") return dataStr;
+        if (dataStr.includes('-') && dataStr.length === 10) {
+            let partes = dataStr.split('-');
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        if (dataStr.includes('T')) {
+            let d = new Date(dataStr);
+            if (!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR', {timeZone: 'UTC'});
+        }
+        return dataStr; 
+    }
 
     function showToast(msg, tipo = "success") {
         const toast = document.getElementById("toast");
@@ -268,7 +316,6 @@
         setTimeout(() => toast.className = "", 3500);
     }
 
-    // Mascara CPF
     document.getElementById("profCpf").addEventListener("input", function(e) {
         let v = e.target.value.replace(/\D/g, "");
         if (v.length > 11) v = v.substring(0, 11);
@@ -278,20 +325,14 @@
         e.target.value = v;
     });
 
-    // Analisa as palavras do CBO para exibir Conselho ou Área/Micro-área
     function analisarCBO() {
         const cboText = document.getElementById("profCbo").value.toLowerCase();
-        
-        // Regra do Conselho (Registro)
-        const profissoesConselho = ["médic", "medic", "enferm", "nutricionist", "dentist", "odont", "psicólog", "psicolog", "fisioterapeut"];
-        const exigeConselho = profissoesConselho.some(p => cboText.includes(p));
-        
+        // Adicionado "bucal" e "asb" à lista de validação
+        const exigeConselho = ["médic", "medic", "enferm", "nutricionist", "dentist", "odont", "psicólog", "psicolog", "fisioterapeut", "bucal", "asb"].some(p => cboText.includes(p));
         document.getElementById("groupConselho").style.display = exigeConselho ? "block" : "none";
         document.getElementById("profConselho").required = exigeConselho;
 
-        // Regra do Agente Comunitário (ACS)
         const exigeACS = cboText.includes("agente comunit") || cboText.includes("acs");
-        
         document.getElementById("groupACS").style.display = exigeACS ? "flex" : "none";
         document.getElementById("profArea").required = exigeACS;
         document.getElementById("profMicroArea").required = exigeACS;
@@ -300,17 +341,43 @@
     function carregarUnidades() {
         const atual = document.getElementById("unidadeAtual");
         const destino = document.getElementById("unidadeDestino");
+        const sec = document.getElementById("listaUnidadesSecundarias");
+        
         atual.innerHTML = '<option value="" disabled selected>Selecione...</option>';
         destino.innerHTML = '<option value="" disabled selected>Selecione...</option>';
-        unidades.forEach(u => { atual.options.add(new Option(u, u)); destino.options.add(new Option(u, u)); });
+        sec.innerHTML = '';
+
+        unidades.forEach(u => { 
+            atual.options.add(new Option(u, u)); 
+            destino.options.add(new Option(u, u)); 
+            
+            let lbl = document.createElement("label");
+            lbl.innerHTML = `<input type="checkbox" class="chk-secundaria" value="${u}"> ${u}`;
+            sec.appendChild(lbl);
+        });
+    }
+
+    function toggleMultiUnidades() {
+        const val = document.getElementById("profMultiUnidades").value;
+        document.getElementById("boxUnidadesSecundarias").style.display = val === "Sim" ? "block" : "none";
+        if(val === "Não") {
+            document.querySelectorAll('.chk-secundaria').forEach(chk => chk.checked = false);
+        }
     }
 
     function verificarEquipe() {
+        const group = document.getElementById("groupEquipe");
+        
+        // Se for Troca Temporária, não pedimos equipe independente da unidade escolhida.
+        if (tipoDocumentoAtual === "Troca Temporária") {
+            group.style.display = "none";
+            return;
+        }
+
         let alvo = (tipoDocumentoAtual === "Exclusão de Profissional") 
             ? document.getElementById("unidadeAtual").value 
             : document.getElementById("unidadeDestino").value;
 
-        const group = document.getElementById("groupEquipe");
         group.style.display = (!alvo || semEquipe.includes(alvo)) ? "none" : "block";
     }
 
@@ -329,9 +396,11 @@
             let data = await res.json();
             if(data.success) {
                 usuarioLogado = data;
-                document.getElementById("lblUser").innerText = data.usuario.toUpperCase();
-                document.getElementById("btnAreaRestrita").style.display = data.admin ? "flex" : "none";
-                showToast(`Bem-vindo, ${data.usuario}!`, "success");
+                // Deixa a primeira letra do nome maiúscula para estética
+                const nomeFormatado = data.usuario.split(' ').map(n => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()).join(' ');
+                document.getElementById("lblUser").innerText = nomeFormatado;
+                document.getElementById("btnAreaRestrita").style.display = data.admin ? "block" : "none";
+                showToast(`Bem-vindo, ${nomeFormatado}!`, "success");
                 navegar("pageIndex"); carregarUnidades();
             } else showToast("Credenciais inválidas.", "error");
         } catch(err) { showToast("Erro de conexão.", "error"); } 
@@ -342,27 +411,28 @@
         tipoDocumentoAtual = tipo;
         document.getElementById("formTitle").innerText = `Solicitação: ${tipo}`;
         document.getElementById("formCI").reset();
-        analisarCBO(); // Reseta os campos dinâmicos do CBO
+        analisarCBO(); toggleMultiUnidades(); 
 
-        // Controle de Exibição dos Blocos
         const grpNovo = document.getElementById("groupNovoProfissional");
+        const grpMulti = document.getElementById("groupMultiUnidades");
         const grpDeslig = document.getElementById("groupDataDesligamento");
         const grpAtu = document.getElementById("groupUnidadeAtual");
         const grpDes = document.getElementById("groupUnidadeDestino");
         
-        // Reset defaults
         grpNovo.style.display = "none"; document.getElementById("profVinculo").required = false; document.getElementById("profCargaHoraria").required = false; document.getElementById("profDataEntrada").required = false;
+        grpMulti.style.display = "none";
         grpDeslig.style.display = "none"; document.getElementById("profDataDesligamento").required = false;
         
         if (tipo === "Novo Profissional") {
-            grpNovo.style.display = "block"; // Usando block porque agora tem múltiplas linhas no HTML
+            grpNovo.style.display = "block"; 
+            grpMulti.style.display = "block"; // Habilita Múltiplas Unidades
             document.getElementById("profVinculo").required = true;
             document.getElementById("profCargaHoraria").required = true;
-            document.getElementById("profDataEntrada").required = true; // Torna Data de Entrada obrigatória
+            document.getElementById("profDataEntrada").required = true;
             
             grpAtu.style.display = "none"; document.getElementById("unidadeAtual").required = false;
             grpDes.style.display = "block"; document.getElementById("unidadeDestino").required = true;
-            document.getElementById("lblUnidadeDestino").innerText = "Unidade de Lotação";
+            document.getElementById("lblUnidadeDestino").innerText = "Unidade Principal (Faturamento/Lotação)";
             document.getElementById("lblEquipe").innerText = "Equipe de Lotação";
             document.getElementById("btnEnviar").style.backgroundColor = "var(--primary)";
 
@@ -375,18 +445,20 @@
             document.getElementById("lblEquipe").innerText = "Equipe Atual";
             document.getElementById("btnEnviar").style.backgroundColor = "var(--danger)";
 
-        } else if (tipo === "Troca Temporária") {
-            grpAtu.style.display = "none"; document.getElementById("unidadeAtual").required = false;
-            grpDes.style.display = "block"; document.getElementById("unidadeDestino").required = true;
-            document.getElementById("lblUnidadeDestino").innerText = "Unidade Destino";
-            document.getElementById("lblEquipe").innerText = "Equipe de Lotação";
-            document.getElementById("btnEnviar").style.backgroundColor = "var(--primary)";
+        } else if (tipo === "Troca Temporária" || tipo === "Troca Permanente") {
+            grpAtu.style.display = (tipo === "Troca Temporária") ? "none" : "block"; 
+            document.getElementById("unidadeAtual").required = (tipo === "Troca Permanente");
             
-        } else { // Troca Permanente
-            grpAtu.style.display = "block"; document.getElementById("unidadeAtual").required = true;
             grpDes.style.display = "block"; document.getElementById("unidadeDestino").required = true;
-            document.getElementById("lblUnidadeDestino").innerText = "Nova Unidade (Destino)";
-            document.getElementById("lblEquipe").innerText = "Nova Equipe (Destino)";
+            
+            if (tipo === "Troca Permanente") {
+                grpMulti.style.display = "block"; // Habilita Múltiplas Unidades
+                document.getElementById("lblUnidadeDestino").innerText = "Nova Unidade Principal (Faturamento/Lotação)";
+            } else {
+                document.getElementById("lblUnidadeDestino").innerText = "Unidade de Destino (Atuação Temporária)";
+            }
+            
+            document.getElementById("lblEquipe").innerText = "Equipe Destino";
             document.getElementById("btnEnviar").style.backgroundColor = "var(--primary)";
         }
 
@@ -405,11 +477,21 @@
 
         let uAtual = document.getElementById("unidadeAtual").value;
         let uDest = document.getElementById("unidadeDestino").value;
+
         if (tipoDocumentoAtual === "Novo Profissional") uAtual = "Admissão Nova";
         if (tipoDocumentoAtual === "Troca Temporária") uAtual = "Não se aplica (Temporária)";
         if (tipoDocumentoAtual === "Exclusão de Profissional") uDest = "Desligamento";
 
-        // Coleta os novos campos
+        // Aplica a lógica de múltiplas unidades para Novo Profissional e Troca Permanente
+        if (tipoDocumentoAtual === "Novo Profissional" || tipoDocumentoAtual === "Troca Permanente") {
+            if(document.getElementById("profMultiUnidades").value === "Sim") {
+                let selecionadas = Array.from(document.querySelectorAll('.chk-secundaria:checked')).map(c => c.value);
+                if(selecionadas.length > 0) {
+                    uDest = `${uDest} + (Secundárias: ${selecionadas.join(", ")})`;
+                }
+            }
+        }
+
         const payload = {
             action: "enviarCI",
             remetente: usuarioLogado.usuario,
@@ -424,8 +506,6 @@
             vinculo: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profVinculo").value : "Não se aplica",
             cargaHoraria: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profCargaHoraria").value : "Não se aplica",
             dataDesligamento: document.getElementById("groupDataDesligamento").style.display !== "none" ? document.getElementById("profDataDesligamento").value : "Não se aplica",
-            
-            // Nova variável enviada
             dataEntrada: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profDataEntrada").value : "Não se aplica",
 
             unidadeAtual: uAtual,
@@ -444,66 +524,150 @@
         }
     });
 
+    /* ========================================================
+       SISTEMA DE DUPLA VALIDAÇÃO COM AUDITORIA (USUÁRIO E HORA)
+       ======================================================== */
     async function abrirAreaRestrita() {
         navegar("pageRestrita");
-        const lista = document.getElementById("listaCIs");
-        lista.innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
+        document.getElementById("listaCIs").innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary);"></i></div>';
 
         try {
             let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "listarCIs" }) });
             let resData = await res.json();
             
             if(resData.success) {
-                lista.innerHTML = "";
-                let dados = resData.dados.reverse();
-                if(dados.length === 0) return lista.innerHTML = "<div style='text-align:center;'>Nenhum registro.</div>"; 
-                
-                dados.forEach((ci, i) => {
-                    let item = document.createElement("div");
-                    item.className = "ci-item" + (ci.tipoTroca === "Exclusão de Profissional" ? " exclusao" : "");
-                    
-                    let ic = ci.tipoTroca === "Novo Profissional" ? "fa-user-plus" : ci.tipoTroca === "Exclusão de Profissional" ? "fa-user-minus" : "fa-file-lines";
-                    let cor = ci.tipoTroca === "Exclusão de Profissional" ? "var(--danger)" : "var(--primary)";
-
-                    item.innerHTML = `<i class="fa-solid ${ic}" style="color:${cor}; margin-right:8px;"></i> <strong>${ci.nomeProfissional}</strong>
-                                      <div style="font-size:12px; color:#64748b; margin-top:4px;">${ci.tipoTroca} • ${ci.dataHora}</div>`;
-                    
-                    item.onclick = () => { let d = document.getElementById(`det-${i}`); d.style.display = d.style.display === "block" ? "none" : "block"; };
-                    
-                    let det = document.createElement("div"); det.id = `det-${i}`; det.className = "ci-details";
-                    
-                    // Constrói os detalhes formatados
-                    let detalhesExtras = "";
-                    if(ci.conselho && ci.conselho !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-id-badge"></i> Conselho:</strong> ${ci.conselho}<br>`;
-                    if(ci.vinculo && ci.vinculo !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-file-contract"></i> Vínculo:</strong> ${ci.vinculo} (${ci.cargaHoraria})<br>`;
-                    if(ci.area && ci.area !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-map"></i> ACS:</strong> Área ${ci.area} / Micro ${ci.microArea}<br>`;
-                    
-                    if(ci.dataEntrada && ci.dataEntrada !== "Não se aplica") {
-                        let dObj = ci.dataEntrada.split('-');
-                        let dataFormatada = dObj.length === 3 ? `${dObj[2]}/${dObj[1]}/${dObj[0]}` : ci.dataEntrada;
-                        detalhesExtras += `<strong><i class="fa-regular fa-calendar-check" style="color:var(--primary)"></i> Data Entrada:</strong> ${dataFormatada}<br>`;
-                    }
-
-                    if(ci.dataDesligamento && ci.dataDesligamento !== "Não se aplica") {
-                        let dObj = ci.dataDesligamento.split('-');
-                        let dataFormatada = dObj.length === 3 ? `${dObj[2]}/${dObj[1]}/${dObj[0]}` : ci.dataDesligamento;
-                        detalhesExtras += `<strong><i class="fa-regular fa-calendar-xmark" style="color:red"></i> Data Desligamento:</strong> ${dataFormatada}<br>`;
-                    }
-
-                    det.innerHTML = `
-                        <strong><i class="fa-solid fa-user-tie"></i> Solic.:</strong> ${ci.remetente}<br>
-                        <strong><i class="fa-solid fa-id-card"></i> CPF:</strong> ${ci.cpf}<br>
-                        <strong><i class="fa-solid fa-briefcase-medical"></i> CBO:</strong> ${ci.cbo}<br>
-                        ${detalhesExtras}
-                        <hr style="border-top:1px solid #cbd5e1; margin:8px 0;">
-                        <strong><i class="fa-solid fa-building"></i> Origem:</strong> ${ci.unidadeAtual}<br>
-                        <strong><i class="fa-solid fa-hospital"></i> Destino:</strong> ${ci.unidadeDestino}<br>
-                        <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${ci.equipe}
-                    `;
-                    lista.append(item, det);
-                });
+                bancoDadosCIs = resData.dados.reverse();
+                mudarAba('pendentes'); 
             }
-        } catch(err) { lista.innerHTML = "<div style='color:red; text-align:center;'>Erro de conexão.</div>"; }
+        } catch(err) { document.getElementById("listaCIs").innerHTML = "<div style='color:red; text-align:center;'>Erro de conexão com o banco.</div>"; }
+    }
+
+    function mudarAba(nomeAba) {
+        abaAtual = nomeAba;
+        document.getElementById('btnTabPendentes').classList.toggle('active', abaAtual === 'pendentes');
+        document.getElementById('btnTabHistorico').classList.toggle('active', abaAtual === 'historico');
+        
+        let listaFiltrada = bancoDadosCIs.filter(ci => {
+            let concluido = (ci.statusCNES === true && ci.statusCELK === true);
+            return abaAtual === 'historico' ? concluido : !concluido;
+        });
+
+        renderizarCIs(listaFiltrada);
+    }
+
+    function renderizarCIs(lista) {
+        const divLista = document.getElementById("listaCIs");
+        divLista.innerHTML = "";
+        
+        if(lista.length === 0) return divLista.innerHTML = `<div style='text-align:center; color:#64748b; padding:20px;'>Nenhuma CI ${abaAtual === 'pendentes' ? 'em aberto' : 'no histórico'}.</div>`; 
+        
+        lista.forEach((ci, i) => {
+            let item = document.createElement("div");
+            item.className = "ci-item" + (ci.tipoTroca === "Exclusão de Profissional" ? " exclusao" : "");
+            
+            let ic = ci.tipoTroca === "Novo Profissional" ? "fa-user-plus" : ci.tipoTroca === "Exclusão de Profissional" ? "fa-user-minus" : "fa-file-lines";
+            let cor = ci.tipoTroca === "Exclusão de Profissional" ? "var(--danger)" : "var(--primary)";
+
+            let tagPendente = "";
+            if (abaAtual === 'pendentes') {
+                let tags = [];
+                if (!ci.statusCNES) tags.push("CNES");
+                if (!ci.statusCELK) tags.push("CELK");
+                tagPendente = `<span style="float:right; font-size:11px; font-weight:bold; color:var(--warning); background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid var(--warning);">FALTA: ${tags.join(' e ')}</span>`;
+            }
+
+            item.innerHTML = `
+                ${tagPendente}
+                <i class="fa-solid ${ic}" style="color:${cor}; margin-right:8px;"></i> <strong>${ci.nomeProfissional}</strong>
+                <div style="font-size:12px; color:#64748b; margin-top:4px;">${ci.tipoTroca} • Enviado em ${ci.dataHora}</div>
+            `;
+            
+            item.onclick = () => { let d = document.getElementById(`det-${i}`); d.style.display = d.style.display === "block" ? "none" : "block"; };
+            
+            let det = document.createElement("div"); det.id = `det-${i}`; det.className = "ci-details";
+            
+            let detalhesExtras = "";
+            if(ci.conselho && ci.conselho !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-id-badge"></i> Conselho:</strong> ${ci.conselho}<br>`;
+            if(ci.vinculo && ci.vinculo !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-file-contract"></i> Vínculo:</strong> ${ci.vinculo} (${ci.cargaHoraria})<br>`;
+            if(ci.area && ci.area !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-map"></i> ACS:</strong> Área ${ci.area} / Micro ${ci.microArea}<br>`;
+            if(ci.dataEntrada && ci.dataEntrada !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-check" style="color:var(--primary)"></i> Data Entrada:</strong> ${formatarDataBr(ci.dataEntrada)}<br>`;
+            if(ci.dataDesligamento && ci.dataDesligamento !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-xmark" style="color:red"></i> Data Desligamento:</strong> ${formatarDataBr(ci.dataDesligamento)}<br>`;
+
+            // Strings de autoria abaixo do botão se estiver validado
+            let textoAuditCNES = (ci.statusCNES && ci.infoCNES) ? `<span class="audit-info">${ci.infoCNES}</span>` : "";
+            let textoAuditCELK = (ci.statusCELK && ci.infoCELK) ? `<span class="audit-info">${ci.infoCELK}</span>` : "";
+
+            det.innerHTML = `
+                <strong><i class="fa-solid fa-user-tie"></i> Solic.:</strong> ${ci.remetente}<br>
+                <strong><i class="fa-solid fa-id-card"></i> CPF:</strong> ${ci.cpf}<br>
+                <strong><i class="fa-solid fa-briefcase-medical"></i> CBO:</strong> ${ci.cbo}<br>
+                ${detalhesExtras}
+                <hr style="border-top:1px solid #cbd5e1; margin:8px 0;">
+                <strong><i class="fa-solid fa-building"></i> Origem:</strong> ${ci.unidadeAtual}<br>
+                <strong><i class="fa-solid fa-hospital"></i> Destino:</strong> ${ci.unidadeDestino}<br>
+                <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${ci.equipe}
+                
+                <!-- Botoes de Validação com Auditoria -->
+                <div class="confirm-actions">
+                    <div style="flex:1;">
+                        <button class="btn-valida ${ci.statusCNES ? 'ok' : ''}" onclick="atualizarSistemaRestrito(${ci.row}, 'CNES', ${!ci.statusCNES})">
+                            <i class="fa-solid ${ci.statusCNES ? 'fa-check-double' : 'fa-check'}"></i> CNES
+                        </button>
+                        ${textoAuditCNES}
+                    </div>
+                    <div style="flex:1;">
+                        <button class="btn-valida ${ci.statusCELK ? 'ok' : ''}" onclick="atualizarSistemaRestrito(${ci.row}, 'CELK', ${!ci.statusCELK})">
+                            <i class="fa-solid ${ci.statusCELK ? 'fa-check-double' : 'fa-check'}"></i> CELK
+                        </button>
+                        ${textoAuditCELK}
+                    </div>
+                </div>
+            `;
+            divLista.append(item, det);
+        });
+    }
+
+    // Passamos o usuário logado para a função
+    async function atualizarSistemaRestrito(linha, sistema, novoStatus) {
+        event.stopPropagation(); 
+        
+        let ciIndex = bancoDadosCIs.findIndex(c => c.row === linha);
+        
+        // Formatação bonitinha do nome de quem está clicando
+        const nomeGestor = usuarioLogado.usuario.split(' ').map(n => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()).join(' ');
+
+        try {
+            let res = await fetch(API_URL, { 
+                method: "POST", 
+                body: JSON.stringify({ 
+                    action: "atualizarStatus", 
+                    row: linha, 
+                    sistema: sistema, 
+                    status: novoStatus,
+                    usuario: nomeGestor 
+                }) 
+            });
+            
+            let data = await res.json();
+
+            if (data.success && ciIndex > -1) {
+                // Atualiza na memória local
+                if (sistema === 'CNES') {
+                    bancoDadosCIs[ciIndex].statusCNES = novoStatus;
+                    bancoDadosCIs[ciIndex].infoCNES = data.infoStr; 
+                }
+                if (sistema === 'CELK') {
+                    bancoDadosCIs[ciIndex].statusCELK = novoStatus;
+                    bancoDadosCIs[ciIndex].infoCELK = data.infoStr;
+                }
+                
+                mudarAba(abaAtual); 
+                showToast(`${sistema} atualizado.`, "success");
+            }
+        } catch(e) {
+            console.log("Erro ao salvar status", e);
+            showToast("Falha ao registrar.", "error");
+        }
     }
 </script>
 </body>
