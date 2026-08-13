@@ -343,7 +343,7 @@
         const cboText = document.getElementById("profCbo").value.toLowerCase();
         
         // Verifica se a profissão exige conselho por padrão
-        let exigeConselho = ["médic", "medic", "enferm", "nutricionist", "dentist", "odont", "psicólog", "psicolog", "fisioterapeut", "bucal", "asb"].some(p => cboText.includes(p));
+        let exigeConselho = ["médic", "medic", "enferm", "nutricionist", "dentist", "odont", "psicólog", "psicolog", "fisioterapeut", "bucal", "asb", "farmace", "farmaceutico"].some(p => cboText.includes(p));
 
         // NOVA LÓGICA: Se for Troca Temporária (ou Exclusão), anula a exigência do conselho
         if (tipoDocumentoAtual === "Troca Temporária" || tipoDocumentoAtual === "Exclusão de Profissional") {
