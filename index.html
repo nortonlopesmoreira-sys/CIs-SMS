@@ -89,6 +89,24 @@
         /* Classe para o texto de auditoria abaixo do botão */
         .audit-info { display: block; font-size: 11.5px; font-weight: 500; color: #64748b; margin-top: 6px; text-align: center; }
 
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(241, 245, 249, 0.92);
+            z-index: 2000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            backdrop-filter: blur(2px);
+        }
+        #loadingOverlay i { font-size: 46px; color: var(--primary); }
+        #loadingOverlay p { margin-top: 16px; font-weight: 700; color: var(--primary); font-size: 16px; max-width: 300px; }
+        #loadingOverlay span { margin-top: 8px; font-size: 13px; color: #64748b; }
+
         #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
         #toast.show { visibility: visible; opacity: 1; bottom: 40px; }
         #toast.success { background-color: var(--success); }
@@ -136,7 +154,7 @@
                 <i class="fa-solid fa-user-plus"></i><h3>Novo Profissional</h3>
             </div>
             <div class="doc-card danger" onclick="abrirFormulario('Exclusão de Profissional')">
-                <i class="fa-solid fa-user-minus"></i><h3>Exclusão</h3>
+                <i class="fa-solid fa-user-minus"></i><h3>Desligamento</h3>
             </div>
         </div>
         <button id="btnAreaRestrita" class="btn-secondary" style="display:none;" onclick="abrirAreaRestrita()">
@@ -276,6 +294,12 @@
     </div>
 </div>
 
+<div id="loadingOverlay">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+    <p id="loadingOverlayText">Enviando informações...</p>
+    <span>Por favor, não feche nem atualize esta página.</span>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -328,6 +352,54 @@
         const toast = document.getElementById("toast");
         toast.innerText = msg; toast.className = `show ${tipo}`;
         setTimeout(() => toast.className = "", 3500);
+    }
+
+    /* ========================================================
+       PROTEÇÃO CONTRA ENVIO DUPLICADO / CONEXÃO LENTA
+       - Overlay em tela cheia impede qualquer novo clique enquanto envia.
+       - Cada tentativa de cadastro carrega uma "idKey" única. Se a conexão
+         cair antes da resposta chegar, o app tenta reenviar automaticamente
+         com a MESMA chave. O servidor (Apps Script) reconhece a chave repetida
+         e não grava de novo, então não há duplicidade mesmo com reenvio.
+       ======================================================== */
+    function mostrarOverlay(texto) {
+        document.getElementById("loadingOverlayText").innerText = texto || "Processando...";
+        document.getElementById("loadingOverlay").style.display = "flex";
+    }
+    function esconderOverlay() {
+        document.getElementById("loadingOverlay").style.display = "none";
+    }
+
+    function gerarIdKey() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return 'id-' + Date.now() + '-' + Math.random().toString(36).substring(2, 15);
+    }
+
+    let idKeyFormularioAtual = gerarIdKey();
+
+    // Faz o POST com timeout e, se a conexão falhar/demorar demais, tenta de novo
+    // automaticamente (até "tentativas" vezes) usando o MESMO payload/idKey.
+    async function fetchComRetry(payload, tentativas = 3, timeoutMs = 15000, textoOverlayBase = "Enviando...") {
+        let ultimoErro = null;
+        for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                if (tentativa > 1) {
+                    mostrarOverlay(`Conexão lenta, tentando novamente (${tentativa}/${tentativas})...`);
+                }
+                let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload), signal: controller.signal });
+                clearTimeout(timer);
+                return await res.json();
+            } catch (err) {
+                clearTimeout(timer);
+                ultimoErro = err;
+                if (tentativa < tentativas) {
+                    await new Promise(r => setTimeout(r, 1200 * tentativa));
+                }
+            }
+        }
+        throw ultimoErro;
     }
 
     document.getElementById("profCpf").addEventListener("input", function(e) {
@@ -415,10 +487,10 @@
         e.preventDefault();
         const btn = document.getElementById("btnLogar");
         btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
-        
+        mostrarOverlay("Autenticando...");
+
         try {
-            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "login", usuario: document.getElementById("loginUser").value, senha: document.getElementById("loginPass").value }) });
-            let data = await res.json();
+            let data = await fetchComRetry({ action: "login", usuario: document.getElementById("loginUser").value, senha: document.getElementById("loginPass").value }, 3, 15000);
             if(data.success) {
                 usuarioLogado = data;
                 // Deixa a primeira letra do nome maiúscula para estética
@@ -428,12 +500,13 @@
                 showToast(`Bem-vindo, ${nomeFormatado}!`, "success");
                 navegar("pageIndex"); carregarUnidades();
             } else showToast("Credenciais inválidas.", "error");
-        } catch(err) { showToast("Erro de conexão.", "error"); } 
-        finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Acessar'; }
+        } catch(err) { showToast("Erro de conexão. Verifique sua internet e tente novamente.", "error"); } 
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Acessar'; esconderOverlay(); }
     });
 
     function abrirFormulario(tipo) {
         tipoDocumentoAtual = tipo;
+        idKeyFormularioAtual = gerarIdKey(); // nova chave a cada formulário aberto
         document.getElementById("formTitle").innerText = `Solicitação: ${tipo}`;
         document.getElementById("formCI").reset();
         analisarCBO(); toggleMultiUnidades(); 
@@ -499,6 +572,7 @@
 
         const btn = document.getElementById("btnEnviar");
         btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registrando...';
+        mostrarOverlay("Enviando documento...");
 
         let uAtual = document.getElementById("unidadeAtual").value;
         let uDest = document.getElementById("unidadeDestino").value;
@@ -519,6 +593,7 @@
 
         const payload = {
             action: "enviarCI",
+            idKey: idKeyFormularioAtual,
             remetente: usuarioLogado.usuario,
             tipoTroca: tipoDocumentoAtual,
             nomeProfissional: document.getElementById("profNome").value.toUpperCase(),
@@ -539,13 +614,19 @@
         };
 
         try {
-            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
-            let data = await res.json();
-            if(data.success) { showToast("Registrado com sucesso!", "success"); voltarIndex(); }
-        } catch(err) { showToast("Falha na comunicação.", "error"); } 
+            let data = await fetchComRetry(payload, 3, 20000);
+            if(data.success) {
+                showToast("Registrado com sucesso!", "success");
+                idKeyFormularioAtual = gerarIdKey(); // gera nova chave para o próximo envio
+                voltarIndex();
+            } else {
+                showToast("Não foi possível registrar. Tente novamente.", "error");
+            }
+        } catch(err) { showToast("Falha na comunicação. Verifique sua internet e tente novamente.", "error"); } 
         finally { 
             btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Documento'; 
             if(tipoDocumentoAtual === "Exclusão de Profissional") btn.style.backgroundColor = "var(--danger)";
+            esconderOverlay();
         }
     });
 
