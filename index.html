@@ -83,9 +83,15 @@
         .btn-valida:hover { border-color: var(--primary); color: var(--primary); background: #f4f8fc; box-shadow: none; transform: none; }
         .btn-valida.ok { background: var(--success); border-color: var(--success); color: #fff; }
         .btn-valida.ok:hover { background: #059669; }
-        .search-bar { position: relative; margin-bottom: 20px; display: none; animation: fadeIn 0.3s ease; }
-        .search-bar i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 15px; }
-        .search-bar input { padding-left: 40px; background: #fff; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .search-bar { position: relative; margin-bottom: 20px; display: none; gap: 10px; align-items: center; animation: fadeIn 0.3s ease; }
+        .search-bar-input-wrap { position: relative; flex: 1; }
+        .search-bar-input-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 15px; }
+        .search-bar-input-wrap input { padding-left: 40px; background: #fff; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+
+        .export-btn { width: 34px; height: 34px; min-width: 34px; padding: 0; flex: none; border-radius: 8px; background: #fff; border: 1px solid var(--border); color: #94a3b8; font-size: 13px; }
+        .export-btn:hover { transform: none; box-shadow: none; }
+        #btnExportPDF:hover { color: var(--danger); border-color: var(--danger); background: #fef2f2; }
+        #btnExportExcel:hover { color: var(--success); border-color: var(--success); background: #ecfdf5; }
         /* Classe para o texto de auditoria abaixo do botão */
         .audit-info { display: block; font-size: 11.5px; font-weight: 500; color: #64748b; margin-top: 6px; text-align: center; }
 
@@ -285,8 +291,16 @@
         </div>
         <!-- NOVA BARRA DE PESQUISA -->
         <div class="search-bar" id="searchContainer">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="inputBuscaCI" placeholder="Buscar por palavra-chave (Ex: Residente, Médico, CPF...)" oninput="aplicarFiltros()">
+            <div class="search-bar-input-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="inputBuscaCI" placeholder="Buscar por palavra-chave (Ex: Residente, Médico, CPF...)" oninput="aplicarFiltros()">
+            </div>
+            <button type="button" class="export-btn" id="btnExportPDF" title="Exportar esta lista em PDF" onclick="exportarPDF()">
+                <i class="fa-solid fa-file-pdf"></i>
+            </button>
+            <button type="button" class="export-btn" id="btnExportExcel" title="Exportar esta lista em Excel" onclick="exportarExcel()">
+                <i class="fa-solid fa-file-excel"></i>
+            </button>
         </div>
 
         <div id="listaCIs" style="margin-bottom: 20px;">Carregando histórico...</div>
@@ -302,6 +316,9 @@
 
 <div id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxkJQpfiHWyxCv7N1qLf2zNy5A3rp02SiPzP5Zfy-1I6NZmh2kwUn3VAckMljTCdnA/exec";
 
@@ -309,6 +326,7 @@
     let tipoDocumentoAtual = "";
     let bancoDadosCIs = []; 
     let abaAtual = 'pendentes'; 
+    let ultimaListaFiltrada = []; // guarda o resultado da última busca/filtro para exportação
 
     const unidades = [
         "ESF 01 – RUI RAMOS", "ESF 02 – MARDUQUE", "ESF 03 – CIDADE NOVA", "ESF 04 – COHAB", 
@@ -411,6 +429,11 @@
         e.target.value = v;
     });
 
+    function ehProfissionalBucal() {
+        const cboText = document.getElementById("profCbo").value.toLowerCase();
+        return ["odont", "dentist", "asb", "saude bucal", "saúde bucal"].some(p => cboText.includes(p));
+    }
+
     function analisarCBO() {
         const cboText = document.getElementById("profCbo").value.toLowerCase();
         
@@ -433,6 +456,9 @@
         document.getElementById("groupACS").style.display = exigeACS ? "flex" : "none";
         document.getElementById("profArea").required = exigeACS;
         document.getElementById("profMicroArea").required = exigeACS;
+
+        // Profissionais de Saúde Bucal (Dentista/ASB) têm equipe fixa por unidade, então não pedimos equipe.
+        verificarEquipe();
     }
 
     function carregarUnidades() {
@@ -467,6 +493,13 @@
         
         // Se for Troca Temporária, não pedimos equipe independente da unidade escolhida.
         if (tipoDocumentoAtual === "Troca Temporária") {
+            group.style.display = "none";
+            return;
+        }
+
+        // Profissionais de Saúde Bucal (Dentista/ASB): cada unidade tem apenas uma
+        // equipe bucal, então não faz sentido pedir a equipe para eles.
+        if (ehProfissionalBucal()) {
             group.style.display = "none";
             return;
         }
@@ -654,7 +687,7 @@
         document.getElementById('btnTabHistorico').classList.toggle('active', abaAtual === 'historico');
         
         // Exibe a barra de pesquisa apenas na aba de Histórico (como solicitado)
-        document.getElementById('searchContainer').style.display = (abaAtual === 'historico') ? 'block' : 'none';
+        document.getElementById('searchContainer').style.display = (abaAtual === 'historico') ? 'flex' : 'none';
         
         // Limpa a pesquisa anterior ao trocar de aba
         document.getElementById('inputBuscaCI').value = "";
@@ -682,6 +715,7 @@
         });
 
         renderizarCIs(listaFiltrada);
+        ultimaListaFiltrada = listaFiltrada;
     }
 
     function renderizarCIs(lista) {
@@ -727,6 +761,7 @@
             let textoAuditCELK = (ci.statusCELK && ci.infoCELK) ? `<span class="audit-info">${ci.infoCELK}</span>` : "";
 
             det.innerHTML = `
+                <strong><i class="fa-solid fa-user"></i> Nome Completo:</strong> ${ci.nomeProfissional}<br>
                 <strong><i class="fa-solid fa-user-tie"></i> Solic.:</strong> ${ci.remetente}<br>
                 <strong><i class="fa-solid fa-id-card"></i> CPF:</strong> ${ci.cpf}<br>
                 <strong><i class="fa-solid fa-briefcase-medical"></i> CBO:</strong> ${ci.cbo}<br>
@@ -754,6 +789,83 @@
             `;
             divLista.append(item, det);
         });
+    }
+
+    /* ========================================================
+       EXPORTAÇÃO DA LISTA (HISTÓRICO) EM PDF E EXCEL
+       Exporta exatamente o que está filtrado/pesquisado na tela.
+       ======================================================== */
+    function montarDadosExport() {
+        return ultimaListaFiltrada.map(ci => ({
+            "Nome Completo": ci.nomeProfissional,
+            "CPF": ci.cpf,
+            "CBO": ci.cbo,
+            "Tipo de Solicitação": ci.tipoTroca,
+            "Vínculo": ci.vinculo || "Não se aplica",
+            "Unidade Origem": ci.unidadeAtual,
+            "Unidade Destino": ci.unidadeDestino,
+            "Equipe": ci.equipe,
+            "Data de Envio": ci.dataHora,
+            "Solicitante": ci.remetente,
+            "Status CNES": ci.statusCNES ? "Concluído" : "Pendente",
+            "Status CELK": ci.statusCELK ? "Concluído" : "Pendente"
+        }));
+    }
+
+    function nomeArquivoExport(extensao) {
+        const termo = document.getElementById('inputBuscaCI').value.trim();
+        const base = termo ? `Historico_CI_${termo.replace(/[^a-zA-Z0-9À-ÿ]+/g, '_')}` : 'Historico_CI';
+        return `${base}.${extensao}`;
+    }
+
+    function exportarExcel() {
+        if (!ultimaListaFiltrada || ultimaListaFiltrada.length === 0) {
+            return showToast("Nenhum registro para exportar.", "error");
+        }
+        try {
+            const ws = XLSX.utils.json_to_sheet(montarDadosExport());
+            ws['!cols'] = [{wch:28},{wch:15},{wch:22},{wch:18},{wch:16},{wch:22},{wch:22},{wch:12},{wch:16},{wch:16},{wch:12},{wch:12}];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Histórico CI");
+            XLSX.writeFile(wb, nomeArquivoExport('xlsx'));
+        } catch (e) {
+            console.log("Erro ao exportar Excel", e);
+            showToast("Não foi possível gerar o Excel.", "error");
+        }
+    }
+
+    function exportarPDF() {
+        if (!ultimaListaFiltrada || ultimaListaFiltrada.length === 0) {
+            return showToast("Nenhum registro para exportar.", "error");
+        }
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: "landscape" });
+            const termo = document.getElementById('inputBuscaCI').value.trim();
+
+            doc.setFontSize(14);
+            doc.text("Histórico de CIs - Portal Gestão de Saúde", 14, 15);
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Filtro aplicado: ${termo || "(nenhum)"}   |   Total de registros: ${ultimaListaFiltrada.length}`, 14, 22);
+
+            doc.autoTable({
+                head: [["Nome", "CPF", "CBO", "Tipo", "Vínculo", "Origem", "Destino", "Equipe", "Data", "Solicitante", "CNES", "CELK"]],
+                body: ultimaListaFiltrada.map(ci => [
+                    ci.nomeProfissional, ci.cpf, ci.cbo, ci.tipoTroca, ci.vinculo || "Não se aplica",
+                    ci.unidadeAtual, ci.unidadeDestino, ci.equipe, ci.dataHora, ci.remetente,
+                    ci.statusCNES ? "Concluído" : "Pendente", ci.statusCELK ? "Concluído" : "Pendente"
+                ]),
+                startY: 27,
+                styles: { fontSize: 7, cellPadding: 2 },
+                headStyles: { fillColor: [5, 49, 110] }
+            });
+
+            doc.save(nomeArquivoExport('pdf'));
+        } catch (e) {
+            console.log("Erro ao exportar PDF", e);
+            showToast("Não foi possível gerar o PDF.", "error");
+        }
     }
 
     // Passamos o usuário logado para a função
