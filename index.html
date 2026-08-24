@@ -94,6 +94,10 @@
         #btnExportExcel:hover { color: var(--success); border-color: var(--success); background: #ecfdf5; }
         /* Classe para o texto de auditoria abaixo do botão */
         .audit-info { display: block; font-size: 11.5px; font-weight: 500; color: #64748b; margin-top: 6px; text-align: center; }
+        .obs-textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 60px; margin-top: 6px; background: #f8fafc; }
+        .obs-textarea:focus { border-color: var(--primary); background: #fff; outline: none; box-shadow: 0 0 0 4px rgba(5,49,110,0.15); }
+        .btn-obs-salvar { width: auto; padding: 8px 16px; font-size: 13px; margin-top: 8px; background-color: var(--primary); }
+        .btn-obs-salvar:hover { background-color: var(--primary-dark); }
 
         #loadingOverlay {
             display: none;
@@ -254,6 +258,11 @@
                 <input type="date" id="profDataDesligamento">
             </div>
 
+            <div class="dynamic-field" id="groupTempoEstimado">
+                <label><i class="fa-solid fa-hourglass-half"></i> Tempo Estimado de Permanência na Unidade (dias)</label>
+                <input type="number" id="profTempoEstimado" min="1" placeholder="Ex: 30">
+            </div>
+
             <div class="form-group" id="groupUnidadeAtual">
                 <label id="lblUnidadeAtual">Unidade Atual</label>
                 <select id="unidadeAtual" onchange="verificarEquipe()"></select>
@@ -352,6 +361,12 @@
         "FARMÁCIA TABAJARA BRITES", "FARMÁCIA UNIÃO DAS VILAS", "FARMÁCIA HIPICA", "FARMÁCIA DO INTERIOR - ESF 09 BARRAGEM",
         "FARMÁCIA DA UBS 10 - SAO MARCOS", "FARMÁCIA DA UBS 11 - JOÃO ARREGUI"
         ];
+
+    // Converte o nome interno "Exclusão de Profissional" (mantido por compatibilidade
+    // com dados já salvos) para o nome exibido ao usuário: "Desligamento de Profissional"
+    function labelTipo(tipo) {
+        return tipo === "Exclusão de Profissional" ? "Desligamento de Profissional" : tipo;
+    }
 
     function formatarDataBr(dataStr) {
         if (!dataStr || dataStr === "Não se aplica") return dataStr;
@@ -540,7 +555,7 @@
     function abrirFormulario(tipo) {
         tipoDocumentoAtual = tipo;
         idKeyFormularioAtual = gerarIdKey(); // nova chave a cada formulário aberto
-        document.getElementById("formTitle").innerText = `Solicitação: ${tipo}`;
+        document.getElementById("formTitle").innerText = `Solicitação: ${labelTipo(tipo)}`;
         document.getElementById("formCI").reset();
         analisarCBO(); toggleMultiUnidades(); 
 
@@ -553,6 +568,7 @@
         grpNovo.style.display = "none"; document.getElementById("profVinculo").required = false; document.getElementById("profCargaHoraria").required = false; document.getElementById("profDataEntrada").required = false;
         grpMulti.style.display = "none";
         grpDeslig.style.display = "none"; document.getElementById("profDataDesligamento").required = false;
+        document.getElementById("groupTempoEstimado").style.display = "none"; document.getElementById("profTempoEstimado").required = false;
         
         if (tipo === "Novo Profissional") {
             grpNovo.style.display = "block"; 
@@ -587,6 +603,8 @@
                 document.getElementById("lblUnidadeDestino").innerText = "Nova Unidade Principal (Faturamento/Lotação)";
             } else {
                 document.getElementById("lblUnidadeDestino").innerText = "Unidade de Destino (Atuação Temporária)";
+                document.getElementById("groupTempoEstimado").style.display = "block";
+                document.getElementById("profTempoEstimado").required = true;
             }
             
             document.getElementById("lblEquipe").innerText = "Equipe Destino";
@@ -640,6 +658,7 @@
             cargaHoraria: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profCargaHoraria").value : "Não se aplica",
             dataDesligamento: document.getElementById("groupDataDesligamento").style.display !== "none" ? document.getElementById("profDataDesligamento").value : "Não se aplica",
             dataEntrada: document.getElementById("groupNovoProfissional").style.display !== "none" ? document.getElementById("profDataEntrada").value : "Não se aplica",
+            tempoEstimadoDias: document.getElementById("groupTempoEstimado").style.display !== "none" ? document.getElementById("profTempoEstimado").value : "Não se aplica",
 
             unidadeAtual: uAtual,
             unidadeDestino: uDest,
@@ -742,7 +761,7 @@
             item.innerHTML = `
                 ${tagPendente}
                 <i class="fa-solid ${ic}" style="color:${cor}; margin-right:8px;"></i> <strong>${ci.nomeProfissional}</strong>
-                <div style="font-size:12px; color:#64748b; margin-top:4px;">${ci.tipoTroca} • Enviado em ${ci.dataHora}</div>
+                <div style="font-size:12px; color:#64748b; margin-top:4px;">${labelTipo(ci.tipoTroca)} • Enviado em ${ci.dataHora}</div>
             `;
             
             item.onclick = () => { let d = document.getElementById(`det-${i}`); d.style.display = d.style.display === "block" ? "none" : "block"; };
@@ -755,6 +774,7 @@
             if(ci.area && ci.area !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-map"></i> ACS:</strong> Área ${ci.area} / Micro ${ci.microArea}<br>`;
             if(ci.dataEntrada && ci.dataEntrada !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-check" style="color:var(--primary)"></i> Data Entrada:</strong> ${formatarDataBr(ci.dataEntrada)}<br>`;
             if(ci.dataDesligamento && ci.dataDesligamento !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-xmark" style="color:red"></i> Data Desligamento:</strong> ${formatarDataBr(ci.dataDesligamento)}<br>`;
+            if(ci.tempoEstimadoDias && ci.tempoEstimadoDias !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-hourglass-half"></i> Tempo Estimado na Unidade:</strong> ${ci.tempoEstimadoDias} dia(s)<br>`;
 
             // Strings de autoria abaixo do botão se estiver validado
             let textoAuditCNES = (ci.statusCNES && ci.infoCNES) ? `<span class="audit-info">${ci.infoCNES}</span>` : "";
@@ -786,6 +806,14 @@
                         ${textoAuditCELK}
                     </div>
                 </div>
+
+                <!-- Observação (disponível para qualquer tipo de CI) -->
+                <hr style="border-top:1px dashed #cbd5e1; margin:12px 0 8px;">
+                <strong><i class="fa-solid fa-note-sticky"></i> Observação:</strong>
+                <textarea class="obs-textarea" id="obs-${ci.row}" placeholder="Adicione uma observação sobre esta CI...">${ci.observacao || ""}</textarea>
+                <button type="button" class="btn-valida btn-obs-salvar" id="btnObs-${ci.row}" onclick="salvarObservacao(${ci.row})">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar Observação
+                </button>
             `;
             divLista.append(item, det);
         });
@@ -800,15 +828,17 @@
             "Nome Completo": ci.nomeProfissional,
             "CPF": ci.cpf,
             "CBO": ci.cbo,
-            "Tipo de Solicitação": ci.tipoTroca,
+            "Tipo de Solicitação": labelTipo(ci.tipoTroca),
             "Vínculo": ci.vinculo || "Não se aplica",
             "Unidade Origem": ci.unidadeAtual,
             "Unidade Destino": ci.unidadeDestino,
             "Equipe": ci.equipe,
+            "Tempo Estimado (dias)": ci.tempoEstimadoDias || "Não se aplica",
             "Data de Envio": ci.dataHora,
             "Solicitante": ci.remetente,
             "Status CNES": ci.statusCNES ? "Concluído" : "Pendente",
-            "Status CELK": ci.statusCELK ? "Concluído" : "Pendente"
+            "Status CELK": ci.statusCELK ? "Concluído" : "Pendente",
+            "Observação": ci.observacao || ""
         }));
     }
 
@@ -908,6 +938,39 @@
         } catch(e) {
             console.log("Erro ao salvar status", e);
             showToast("Falha ao registrar.", "error");
+        }
+    }
+
+    // Salva a observação de uma CI (qualquer tipo). Não recarrega a lista inteira
+    // para não fechar o painel de detalhes que o usuário está vendo.
+    async function salvarObservacao(linha) {
+        event.stopPropagation();
+
+        let ciIndex = bancoDadosCIs.findIndex(c => c.row === linha);
+        const textarea = document.getElementById(`obs-${linha}`);
+        const texto = textarea.value;
+        const btn = document.getElementById(`btnObs-${linha}`);
+        const htmlOriginal = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
+        try {
+            let res = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "atualizarObservacao", row: linha, observacao: texto })
+            });
+            let data = await res.json();
+
+            if (data.success) {
+                if (ciIndex > -1) bancoDadosCIs[ciIndex].observacao = texto;
+                showToast("Observação salva.", "success");
+            } else {
+                showToast("Falha ao salvar observação.", "error");
+            }
+        } catch(e) {
+            console.log("Erro ao salvar observação", e);
+            showToast("Falha na comunicação.", "error");
+        } finally {
+            btn.disabled = false; btn.innerHTML = htmlOriginal;
         }
     }
 </script>
