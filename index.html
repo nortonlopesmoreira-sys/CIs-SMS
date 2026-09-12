@@ -501,6 +501,22 @@
         if(val === "Não") {
             document.querySelectorAll('.chk-secundaria').forEach(chk => chk.checked = false);
         }
+
+        // Na Troca Temporária com múltiplas unidades, a unidade já é definida pela lista de
+        // seleção acima, então o campo único "Unidade de Destino" deixa de ser necessário.
+        if (tipoDocumentoAtual === "Troca Temporária") {
+            const grpDes = document.getElementById("groupUnidadeDestino");
+            const destinoSelect = document.getElementById("unidadeDestino");
+            if (val === "Sim") {
+                grpDes.style.display = "none";
+                destinoSelect.required = false;
+                destinoSelect.value = "";
+            } else {
+                grpDes.style.display = "block";
+                destinoSelect.required = true;
+            }
+            verificarEquipe();
+        }
     }
 
     function verificarEquipe() {
@@ -602,6 +618,7 @@
                 grpMulti.style.display = "block"; // Habilita Múltiplas Unidades
                 document.getElementById("lblUnidadeDestino").innerText = "Nova Unidade Principal (Faturamento/Lotação)";
             } else {
+                grpMulti.style.display = "block"; // Habilita Múltiplas Unidades (atuação temporária em mais de uma unidade)
                 document.getElementById("lblUnidadeDestino").innerText = "Unidade de Destino (Atuação Temporária)";
                 document.getElementById("groupTempoEstimado").style.display = "block";
                 document.getElementById("profTempoEstimado").required = true;
@@ -621,6 +638,13 @@
         e.preventDefault();
         if(document.getElementById("profCpf").value.length !== 14) return showToast("CPF incompleto.", "error");
 
+        // Troca Temporária com múltiplas unidades: exige ao menos uma unidade marcada na lista,
+        // já que o campo único de destino foi dispensado nesse caso.
+        if (tipoDocumentoAtual === "Troca Temporária" && document.getElementById("profMultiUnidades").value === "Sim") {
+            const selecionadas = Array.from(document.querySelectorAll('.chk-secundaria:checked'));
+            if (selecionadas.length === 0) return showToast("Selecione ao menos uma unidade de atuação.", "error");
+        }
+
         const btn = document.getElementById("btnEnviar");
         btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registrando...';
         mostrarOverlay("Enviando documento...");
@@ -632,8 +656,15 @@
         if (tipoDocumentoAtual === "Troca Temporária") uAtual = "Não se aplica (Temporária)";
         if (tipoDocumentoAtual === "Exclusão de Profissional") uDest = "Desligamento";
 
-        // Aplica a lógica de múltiplas unidades para Novo Profissional e Troca Permanente
-        if (tipoDocumentoAtual === "Novo Profissional" || tipoDocumentoAtual === "Troca Permanente") {
+        // Troca Temporária com múltiplas unidades: a unidade de destino única não existe nesse
+        // caso (campo foi ocultado), então o destino é a própria lista de unidades marcadas.
+        if (tipoDocumentoAtual === "Troca Temporária" && document.getElementById("profMultiUnidades").value === "Sim") {
+            let selecionadas = Array.from(document.querySelectorAll('.chk-secundaria:checked')).map(c => c.value);
+            uDest = selecionadas.join(", ");
+
+        // Aplica a lógica de múltiplas unidades (unidade principal + secundárias) para
+        // Novo Profissional e Troca Permanente
+        } else if (tipoDocumentoAtual === "Novo Profissional" || tipoDocumentoAtual === "Troca Permanente") {
             if(document.getElementById("profMultiUnidades").value === "Sim") {
                 let selecionadas = Array.from(document.querySelectorAll('.chk-secundaria:checked')).map(c => c.value);
                 if(selecionadas.length > 0) {
