@@ -135,7 +135,11 @@
         .notif-item.devolvida i { color:var(--danger); }
         .notif-item span { color:#64748b; font-weight:400; font-size:12.5px; }
         .notif-motivo { margin-top:4px; font-size:13px; color:#7f1d1d; font-style:italic; }
-        #notifModal button { margin-top: 14px; }
+        #notifModal button, #excluidasModal button { margin-top: 14px; }
+
+        /* Pills "circuladas" indicando quais campos do formulário estão incorretos */
+        .notif-campos { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
+        .campo-marcado { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:var(--danger); border:2px solid var(--danger); border-radius:999px; padding:3px 10px; background:#fff; }
 
         /* AÇÕES ADMINISTRATIVAS (excluir / devolver solicitação) */
         .admin-actions { display:flex; gap:10px; margin-top:12px; }
@@ -144,6 +148,19 @@
         .btn-perigo:hover { background:var(--danger); color:#fff; }
         .btn-alerta { background:#fff; color:var(--warning); border:2px solid var(--warning); }
         .btn-alerta:hover { background:var(--warning); color:#fff; }
+
+        /* Checklist de campos incorretos no modal de devolução */
+        .campos-checklist { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 4px; }
+        .campo-check { display:flex; align-items:center; gap:6px; font-size:12.5px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:6px 10px; cursor:pointer; }
+        .campo-check input { accent-color: var(--warning); }
+        .btn-confirmar-devolucao { width:auto; flex:1; padding:10px; font-size:13px; background:var(--warning); color:#fff; border:2px solid var(--warning); }
+        .btn-confirmar-devolucao:hover { opacity:0.9; }
+
+        /* Lista de solicitações excluídas (auditoria) */
+        .excluida-item { padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; font-size:13.5px; background:#f8fafc; }
+        .excluida-item .audit-info { display:block; font-size:12px; color:#64748b; margin-top:4px; }
+        .excluida-item .btn-restaurar { margin-top:8px; width:auto; padding:6px 12px; font-size:12.5px; background:#fff; color:var(--success); border:2px solid var(--success); }
+        .excluida-item .btn-restaurar:hover { background:var(--success); color:#fff; }
 
         @media (max-width: 600px) {
             .form-row { flex-direction: column; gap: 0; }
@@ -333,6 +350,9 @@
             <button type="button" class="export-btn" id="btnExportExcel" title="Exportar esta lista em Excel" onclick="exportarExcel()">
                 <i class="fa-solid fa-file-excel"></i>
             </button>
+            <button type="button" class="export-btn" id="btnVerExcluidas" title="Ver solicitações excluídas" onclick="abrirExcluidas()">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
         </div>
 
         <div id="listaCIs" style="margin-bottom: 20px;">Carregando histórico...</div>
@@ -353,6 +373,31 @@
         <h3><i class="fa-solid fa-bell"></i> Atualizações das suas solicitações</h3>
         <div id="notifModalBody"></div>
         <button type="button" onclick="fecharNotifModal()"><i class="fa-solid fa-check"></i> Entendi</button>
+    </div>
+</div>
+
+<div id="devolverModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-rotate-left"></i> Devolver Solicitação</h3>
+        <p id="devolverNomeProf" style="color:#64748b; font-size:13px; margin-bottom:12px;"></p>
+        <strong style="font-size:13px;">Quais campos estão incorretos?</strong>
+        <div class="campos-checklist" id="camposChecklist"></div>
+        <strong style="font-size:13px; display:block; margin-top:14px;">Explique o motivo da devolução:</strong>
+        <textarea id="devolverMotivo" class="obs-textarea" placeholder="Ex: CPF digitado errado, confira o cadastro e reenvie."></textarea>
+        <div class="admin-actions" style="margin-top:14px;">
+            <button type="button" class="btn-secondary" onclick="fecharDevolverModal()">Cancelar</button>
+            <button type="button" class="btn-confirmar-devolucao" onclick="confirmarDevolucao()">
+                <i class="fa-solid fa-paper-plane"></i> Devolver ao Solicitante
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="excluidasModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:600px;">
+        <h3><i class="fa-solid fa-trash-can"></i> Solicitações Excluídas</h3>
+        <div id="excluidasModalBody">Carregando...</div>
+        <button type="button" onclick="fecharExcluidasModal()"><i class="fa-solid fa-xmark"></i> Fechar</button>
     </div>
 </div>
 
@@ -688,12 +733,17 @@
         const corpo = document.getElementById("notifModalBody");
         corpo.innerHTML = lista.map(n => {
             if (n.tipo === "devolvida") {
+                let camposHtml = "";
+                if (n.camposErrados && n.camposErrados.length > 0) {
+                    camposHtml = `<div class="notif-campos">${n.camposErrados.map(c => `<span class="campo-marcado"><i class="fa-solid fa-circle-exclamation"></i> ${c}</span>`).join("")}</div>`;
+                }
                 return `<div class="notif-item devolvida">
                     <i class="fa-solid fa-rotate-left"></i>
                     <div>
                         A solicitação de <strong>${labelTipo(n.tipoTroca)}</strong> referente ao profissional <strong>${n.nomeProfissional}</strong>
                         <span>(solicitada em ${n.dataSolicitacao})</span> foi <strong>devolvida</strong> pelo administrador.
                         <div class="notif-motivo"><i class="fa-solid fa-circle-info"></i> Motivo: ${n.motivo}</div>
+                        ${camposHtml}
                     </div>
                 </div>`;
             }
@@ -902,7 +952,8 @@
                 <strong><i class="fa-solid fa-building"></i> Origem:</strong> ${ci.unidadeAtual}<br>
                 <strong><i class="fa-solid fa-hospital"></i> Destino:</strong> ${ci.unidadeDestino}<br>
                 <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${ci.equipe}
-                ${ci.devolvida ? `<br><strong style="color:var(--danger);"><i class="fa-solid fa-rotate-left"></i> Motivo da devolução:</strong> ${ci.motivoDevolucao} <span class="audit-info">${ci.infoAcaoAdmin}</span>` : ""}
+                ${ci.devolvida ? `<br><strong style="color:var(--danger);"><i class="fa-solid fa-rotate-left"></i> Motivo da devolução:</strong> ${ci.motivoDevolucao} <span class="audit-info">${ci.infoAcaoAdmin}</span>
+                ${ci.camposErrados && ci.camposErrados.length > 0 ? `<div class="notif-campos">${ci.camposErrados.map(c => `<span class="campo-marcado"><i class="fa-solid fa-circle-exclamation"></i> ${c}</span>`).join("")}</div>` : ""}` : ""}
                 
                 <!-- Botoes de Validação com Auditoria -->
                 <div class="confirm-actions">
@@ -1132,19 +1183,45 @@
         }
     }
 
-    async function abrirDevolucao(linha) {
+    // Campos do formulário que o administrador pode marcar como incorretos ao devolver.
+    const CAMPOS_CI = [
+        "Nome do Profissional", "CPF", "CBO/Função", "Unidade de Origem", "Unidade de Destino",
+        "Vínculo", "Carga Horária", "Equipe/Microárea", "Conselho de Classe",
+        "Datas (Entrada/Desligamento)", "Tempo Estimado", "Outro"
+    ];
+    let linhaDevolucaoAtual = null;
+
+    function abrirDevolucao(linha) {
         event.stopPropagation();
         const ci = bancoDadosCIs.find(c => c.row === linha);
         if (!ci) return;
+        linhaDevolucaoAtual = linha;
 
-        const motivo = prompt(`Informe o motivo da devolução da solicitação de "${ci.nomeProfissional}":`);
-        if (motivo === null) return; // administrador cancelou
-        if (!motivo.trim()) return showToast("Informe um motivo para devolver a solicitação.", "error");
+        document.getElementById("devolverNomeProf").innerText = `Profissional: ${ci.nomeProfissional} — ${labelTipo(ci.tipoTroca)}`;
+        document.getElementById("camposChecklist").innerHTML = CAMPOS_CI.map(c =>
+            `<label class="campo-check"><input type="checkbox" class="chk-campo-errado" value="${c}"> ${c}</label>`
+        ).join("");
+        document.getElementById("devolverMotivo").value = "";
+        document.getElementById("devolverModal").style.display = "flex";
+    }
+
+    function fecharDevolverModal() {
+        document.getElementById("devolverModal").style.display = "none";
+        linhaDevolucaoAtual = null;
+    }
+
+    async function confirmarDevolucao() {
+        if (linhaDevolucaoAtual === null) return;
+        const linha = linhaDevolucaoAtual;
+        const motivo = document.getElementById("devolverMotivo").value.trim();
+        const camposMarcados = Array.from(document.querySelectorAll('.chk-campo-errado:checked')).map(c => c.value);
+
+        if (!motivo) return showToast("Descreva o motivo da devolução.", "error");
 
         try {
             let res = await fetch(API_URL, {
                 method: "POST",
-                body: JSON.stringify({ action: "devolverCI", row: linha, usuarioAdmin: usuarioLogado.usuario, motivo: motivo.trim() })
+                body: JSON.stringify({ action: "devolverCI", row: linha, usuarioAdmin: usuarioLogado.usuario, motivo: motivo, camposErrados: camposMarcados })
             });
             let data = await res.json();
 
@@ -1152,8 +1229,10 @@
                 let ciIndex = bancoDadosCIs.findIndex(c => c.row === linha);
                 if (ciIndex > -1) {
                     bancoDadosCIs[ciIndex].devolvida = true;
-                    bancoDadosCIs[ciIndex].motivoDevolucao = motivo.trim();
+                    bancoDadosCIs[ciIndex].motivoDevolucao = motivo;
+                    bancoDadosCIs[ciIndex].camposErrados = camposMarcados;
                 }
+                fecharDevolverModal();
                 mudarAba(abaAtual);
                 showToast("Solicitação devolvida ao responsável.", "success");
             } else {
@@ -1161,6 +1240,72 @@
             }
         } catch (e) {
             console.log("Erro ao devolver CI", e);
+            showToast("Falha na comunicação.", "error");
+        }
+    }
+
+    /* ========================================================
+       SOLICITAÇÕES EXCLUÍDAS (auditoria) — carregadas sob demanda,
+       com opção de restaurar caso tenham sido excluídas por engano.
+       ======================================================== */
+    async function abrirExcluidas() {
+        document.getElementById("excluidasModalBody").innerHTML = "Carregando...";
+        document.getElementById("excluidasModal").style.display = "flex";
+
+        try {
+            let res = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "listarExcluidas", usuarioAdmin: usuarioLogado.usuario })
+            });
+            let data = await res.json();
+            const corpo = document.getElementById("excluidasModalBody");
+
+            if (!data.success) {
+                corpo.innerHTML = `<p style="color:var(--danger);">${data.message || "Não foi possível carregar as solicitações excluídas."}</p>`;
+                return;
+            }
+            if (data.dados.length === 0) {
+                corpo.innerHTML = `<p style="color:#64748b;">Nenhuma solicitação excluída até o momento.</p>`;
+                return;
+            }
+
+            corpo.innerHTML = data.dados.map(ci => `
+                <div class="excluida-item">
+                    <strong>${ci.nomeProfissional}</strong> — ${labelTipo(ci.tipoTroca)}<br>
+                    CPF: ${ci.cpf} &nbsp;|&nbsp; CBO: ${ci.cbo}<br>
+                    Origem: ${ci.unidadeAtual} &rarr; Destino: ${ci.unidadeDestino}<br>
+                    Enviada em ${ci.dataHora} por ${ci.remetente}
+                    <span class="audit-info">${ci.infoAcaoAdmin}</span>
+                    <button type="button" class="btn-restaurar" onclick="restaurarCI(${ci.row})">
+                        <i class="fa-solid fa-trash-arrow-up"></i> Restaurar
+                    </button>
+                </div>
+            `).join("");
+        } catch (e) {
+            console.log("Erro ao buscar excluídas", e);
+            document.getElementById("excluidasModalBody").innerHTML = `<p style="color:var(--danger);">Falha na comunicação.</p>`;
+        }
+    }
+
+    function fecharExcluidasModal() { document.getElementById("excluidasModal").style.display = "none"; }
+
+    async function restaurarCI(linha) {
+        try {
+            let res = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "restaurarCI", row: linha, usuarioAdmin: usuarioLogado.usuario })
+            });
+            let data = await res.json();
+
+            if (data.success) {
+                showToast("Solicitação restaurada.", "success");
+                abrirExcluidas(); // atualiza a lista do modal
+                abrirAreaRestrita(); // recarrega o painel para a CI restaurada voltar a aparecer
+            } else {
+                showToast(data.message || "Falha ao restaurar.", "error");
+            }
+        } catch (e) {
+            console.log("Erro ao restaurar CI", e);
             showToast("Falha na comunicação.", "error");
         }
     }
