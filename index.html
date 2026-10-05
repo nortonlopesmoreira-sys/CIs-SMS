@@ -149,11 +149,13 @@
         .btn-alerta { background:#fff; color:var(--warning); border:2px solid var(--warning); }
         .btn-alerta:hover { background:var(--warning); color:#fff; }
 
-        /* Checklist de campos incorretos no modal de devolução */
-        .campos-checklist { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 4px; }
-        .campo-check { display:flex; align-items:center; gap:6px; font-size:12.5px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:6px 10px; cursor:pointer; }
-        .campo-check input { accent-color: var(--warning); }
-        .btn-confirmar-devolucao { width:auto; flex:1; padding:10px; font-size:13px; background:var(--warning); color:#fff; border:2px solid var(--warning); }
+        /* Campos da própria solicitação, clicáveis para marcar inconsistências ao devolver.
+           O admin não edita o valor — só sinaliza visualmente qual campo está incorreto. */
+        .campo-marcavel { cursor:pointer; border-radius:4px; padding:1px 4px; transition: background 0.15s, outline 0.15s; }
+        .campo-marcavel:hover { background:#fef3c7; }
+        .campo-marcavel.marcado { background:#fee2e2; outline:2px solid var(--danger); font-weight:700; color:var(--danger); }
+        .dica-devolucao { font-size:12px; color:#64748b; margin:4px 0 8px; }
+        .btn-confirmar-devolucao { width:100%; padding:10px; font-size:13px; background:var(--warning); color:#fff; border:2px solid var(--warning); margin-top:8px; }
         .btn-confirmar-devolucao:hover { opacity:0.9; }
 
         /* Lista de solicitações excluídas (auditoria) */
@@ -373,23 +375,6 @@
         <h3><i class="fa-solid fa-bell"></i> Atualizações das suas solicitações</h3>
         <div id="notifModalBody"></div>
         <button type="button" onclick="fecharNotifModal()"><i class="fa-solid fa-check"></i> Entendi</button>
-    </div>
-</div>
-
-<div id="devolverModal" class="modal-overlay">
-    <div class="modal-box">
-        <h3><i class="fa-solid fa-rotate-left"></i> Devolver Solicitação</h3>
-        <p id="devolverNomeProf" style="color:#64748b; font-size:13px; margin-bottom:12px;"></p>
-        <strong style="font-size:13px;">Quais campos estão incorretos?</strong>
-        <div class="campos-checklist" id="camposChecklist"></div>
-        <strong style="font-size:13px; display:block; margin-top:14px;">Explique o motivo da devolução:</strong>
-        <textarea id="devolverMotivo" class="obs-textarea" placeholder="Ex: CPF digitado errado, confira o cadastro e reenvie."></textarea>
-        <div class="admin-actions" style="margin-top:14px;">
-            <button type="button" class="btn-secondary" onclick="fecharDevolverModal()">Cancelar</button>
-            <button type="button" class="btn-confirmar-devolucao" onclick="confirmarDevolucao()">
-                <i class="fa-solid fa-paper-plane"></i> Devolver ao Solicitante
-            </button>
-        </div>
     </div>
 </div>
 
@@ -842,12 +827,20 @@
     /* ========================================================
        SISTEMA DE DUPLA VALIDAÇÃO COM AUDITORIA (USUÁRIO E HORA)
        ======================================================== */
+    // Fica true assim que o histórico completo (todas as CIs, não só as em aberto) já
+    // foi carregado nesta sessão do painel, para não buscar tudo de novo a cada clique.
+    let historicoCarregadoCompleto = false;
+
     async function abrirAreaRestrita() {
         navegar("pageRestrita");
         document.getElementById("listaCIs").innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary);"></i></div>';
+        historicoCarregadoCompleto = false;
 
         try {
-            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "listarCIs" }) });
+            // Carrega só as solicitações em aberto no login — é o que o administrador
+            // precisa na maioria das vezes, e evita trazer todo o histórico acumulado
+            // (que só cresce com o tempo) logo de cara, deixando a entrada mais rápida.
+            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "listarCIs", apenasPendentes: true }) });
             let resData = await res.json();
             
             if(resData.success) {
@@ -857,10 +850,27 @@
         } catch(err) { document.getElementById("listaCIs").innerHTML = "<div style='color:red; text-align:center;'>Erro de conexão com o banco.</div>"; }
     }
 
-    function mudarAba(nomeAba) {
+    async function mudarAba(nomeAba) {
         abaAtual = nomeAba;
         document.getElementById('btnTabPendentes').classList.toggle('active', abaAtual === 'pendentes');
         document.getElementById('btnTabHistorico').classList.toggle('active', abaAtual === 'historico');
+
+        // Só na primeira vez que o Histórico é aberto, busca o conjunto completo
+        // (concluídas + devolvidas) — enquanto isso não acontece, o painel trabalha só
+        // com as solicitações em aberto já carregadas no login.
+        if (abaAtual === 'historico' && !historicoCarregadoCompleto) {
+            document.getElementById("listaCIs").innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary);"></i></div>';
+            try {
+                let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "listarCIs" }) });
+                let resData = await res.json();
+                if (resData.success) {
+                    bancoDadosCIs = resData.dados.reverse();
+                    historicoCarregadoCompleto = true;
+                }
+            } catch (err) {
+                showToast("Falha ao carregar histórico completo.", "error");
+            }
+        }
         
         // Exibe a barra de pesquisa apenas na aba de Histórico (como solicitado)
         document.getElementById('searchContainer').style.display = (abaAtual === 'historico') ? 'flex' : 'none';
@@ -931,27 +941,27 @@
             let det = document.createElement("div"); det.id = `det-${i}`; det.className = "ci-details";
             
             let detalhesExtras = "";
-            if(ci.conselho && ci.conselho !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-id-badge"></i> Conselho:</strong> ${ci.conselho}<br>`;
-            if(ci.vinculo && ci.vinculo !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-file-contract"></i> Vínculo:</strong> ${ci.vinculo} (${ci.cargaHoraria})<br>`;
-            if(ci.area && ci.area !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-map"></i> ACS:</strong> Área ${ci.area} / Micro ${ci.microArea}<br>`;
-            if(ci.dataEntrada && ci.dataEntrada !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-check" style="color:var(--primary)"></i> Data Entrada:</strong> ${formatarDataBr(ci.dataEntrada)}<br>`;
-            if(ci.dataDesligamento && ci.dataDesligamento !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-xmark" style="color:red"></i> Data Desligamento:</strong> ${formatarDataBr(ci.dataDesligamento)}<br>`;
-            if(ci.tempoEstimadoDias && ci.tempoEstimadoDias !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-hourglass-half"></i> Tempo Estimado na Unidade:</strong> ${ci.tempoEstimadoDias} dia(s)<br>`;
+            if(ci.conselho && ci.conselho !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-id-badge"></i> Conselho:</strong> ${campoClicavel(ci, "Conselho de Classe", ci.conselho)}<br>`;
+            if(ci.vinculo && ci.vinculo !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-file-contract"></i> Vínculo:</strong> ${campoClicavel(ci, "Vínculo/Carga Horária", `${ci.vinculo} (${ci.cargaHoraria})`)}<br>`;
+            if(ci.area && ci.area !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-map"></i> ACS:</strong> ${campoClicavel(ci, "Área/Microárea", `Área ${ci.area} / Micro ${ci.microArea}`)}<br>`;
+            if(ci.dataEntrada && ci.dataEntrada !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-check" style="color:var(--primary)"></i> Data Entrada:</strong> ${campoClicavel(ci, "Data de Entrada", formatarDataBr(ci.dataEntrada))}<br>`;
+            if(ci.dataDesligamento && ci.dataDesligamento !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-xmark" style="color:red"></i> Data Desligamento:</strong> ${campoClicavel(ci, "Data de Desligamento", formatarDataBr(ci.dataDesligamento))}<br>`;
+            if(ci.tempoEstimadoDias && ci.tempoEstimadoDias !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-hourglass-half"></i> Tempo Estimado na Unidade:</strong> ${campoClicavel(ci, "Tempo Estimado", `${ci.tempoEstimadoDias} dia(s)`)}<br>`;
 
             // Strings de autoria abaixo do botão se estiver validado
             let textoAuditCNES = (ci.statusCNES && ci.infoCNES) ? `<span class="audit-info">${ci.infoCNES}</span>` : "";
             let textoAuditCELK = (ci.statusCELK && ci.infoCELK) ? `<span class="audit-info">${ci.infoCELK}</span>` : "";
 
             det.innerHTML = `
-                <strong><i class="fa-solid fa-user"></i> Nome Completo:</strong> ${ci.nomeProfissional}<br>
+                <strong><i class="fa-solid fa-user"></i> Nome Completo:</strong> ${campoClicavel(ci, "Nome do Profissional", ci.nomeProfissional)}<br>
                 <strong><i class="fa-solid fa-user-tie"></i> Solic.:</strong> ${ci.remetente}<br>
-                <strong><i class="fa-solid fa-id-card"></i> CPF:</strong> ${ci.cpf}<br>
-                <strong><i class="fa-solid fa-briefcase-medical"></i> CBO:</strong> ${ci.cbo}<br>
+                <strong><i class="fa-solid fa-id-card"></i> CPF:</strong> ${campoClicavel(ci, "CPF", ci.cpf)}<br>
+                <strong><i class="fa-solid fa-briefcase-medical"></i> CBO:</strong> ${campoClicavel(ci, "CBO/Função", ci.cbo)}<br>
                 ${detalhesExtras}
                 <hr style="border-top:1px solid #cbd5e1; margin:8px 0;">
-                <strong><i class="fa-solid fa-building"></i> Origem:</strong> ${ci.unidadeAtual}<br>
-                <strong><i class="fa-solid fa-hospital"></i> Destino:</strong> ${ci.unidadeDestino}<br>
-                <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${ci.equipe}
+                <strong><i class="fa-solid fa-building"></i> Origem:</strong> ${campoClicavel(ci, "Unidade de Origem", ci.unidadeAtual)}<br>
+                <strong><i class="fa-solid fa-hospital"></i> Destino:</strong> ${campoClicavel(ci, "Unidade de Destino", ci.unidadeDestino)}<br>
+                <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${campoClicavel(ci, "Equipe/Microárea", ci.equipe)}
                 ${ci.devolvida ? `<br><strong style="color:var(--danger);"><i class="fa-solid fa-rotate-left"></i> Motivo da devolução:</strong> ${ci.motivoDevolucao} <span class="audit-info">${ci.infoAcaoAdmin}</span>
                 ${ci.camposErrados && ci.camposErrados.length > 0 ? `<div class="notif-campos">${ci.camposErrados.map(c => `<span class="campo-marcado"><i class="fa-solid fa-circle-exclamation"></i> ${c}</span>`).join("")}</div>` : ""}` : ""}
                 
@@ -979,16 +989,22 @@
                     <i class="fa-solid fa-floppy-disk"></i> Salvar Observação
                 </button>
 
-                <!-- Ações administrativas: excluir definitivamente ou devolver ao solicitante -->
+                ${!ci.devolvida ? `
+                <!-- Devolução inline: clique nos campos acima para marcar, sem popup -->
+                <hr style="border-top:1px dashed #cbd5e1; margin:12px 0 8px;">
+                <strong style="color:var(--warning);"><i class="fa-solid fa-rotate-left"></i> Devolver ao solicitante:</strong>
+                <div class="dica-devolucao">Clique nos campos acima que estão incorretos (eles ficam destacados em vermelho) e descreva abaixo o que precisa ser corrigido.</div>
+                <textarea class="obs-textarea" id="devMotivo-${ci.row}" placeholder="Ex: CPF digitado errado, confira o cadastro e reenvie."></textarea>
+                <button type="button" class="btn-confirmar-devolucao" id="btnDevolver-${ci.row}" onclick="enviarDevolucao(${ci.row})">
+                    <i class="fa-solid fa-paper-plane"></i> Devolver ao Solicitante
+                </button>` : ""}
+
+                <!-- Excluir definitivamente -->
                 <hr style="border-top:1px dashed #cbd5e1; margin:12px 0 8px;">
                 <div class="admin-actions">
                     <button type="button" class="btn-perigo" onclick="confirmarExclusao(${ci.row})">
                         <i class="fa-solid fa-trash"></i> Excluir
                     </button>
-                    ${!ci.devolvida ? `
-                    <button type="button" class="btn-alerta" onclick="abrirDevolucao(${ci.row})">
-                        <i class="fa-solid fa-rotate-left"></i> Devolver
-                    </button>` : ""}
                 </div>
             `;
             divLista.append(item, det);
@@ -1183,40 +1199,44 @@
         }
     }
 
-    // Campos do formulário que o administrador pode marcar como incorretos ao devolver.
-    const CAMPOS_CI = [
-        "Nome do Profissional", "CPF", "CBO/Função", "Unidade de Origem", "Unidade de Destino",
-        "Vínculo", "Carga Horária", "Equipe/Microárea", "Conselho de Classe",
-        "Datas (Entrada/Desligamento)", "Tempo Estimado", "Outro"
-    ];
-    let linhaDevolucaoAtual = null;
+    /* ========================================================
+       MARCAÇÃO INLINE DE CAMPOS INCORRETOS (sem popup)
+       O admin clica diretamente em cima do valor exibido na própria solicitação
+       para marcá-lo como incorreto (não edita o dado, só sinaliza). O estado fica
+       guardado aqui e sobrevive a re-renderizações da lista (busca, troca de aba).
+       ======================================================== */
+    let camposMarcadosEstado = {}; // { linha: Set<string> com os nomes dos campos marcados }
 
-    function abrirDevolucao(linha) {
+    // Envolve o valor de um campo num span clicável (só quando a CI ainda pode ser
+    // devolvida); já devolvida vira somente leitura.
+    function campoClicavel(ci, nomeCampo, valorHtml) {
+        if (ci.devolvida) return valorHtml;
+        const marcado = camposMarcadosEstado[ci.row] && camposMarcadosEstado[ci.row].has(nomeCampo);
+        return `<span class="campo-marcavel${marcado ? ' marcado' : ''}" data-campo="${nomeCampo}" onclick="toggleCampoErrado(event, ${ci.row}, this)">${valorHtml}</span>`;
+    }
+
+    function toggleCampoErrado(evt, linha, el) {
+        evt.stopPropagation();
+        el.classList.toggle("marcado");
+        const campo = el.dataset.campo;
+        if (!camposMarcadosEstado[linha]) camposMarcadosEstado[linha] = new Set();
+        if (camposMarcadosEstado[linha].has(campo)) {
+            camposMarcadosEstado[linha].delete(campo);
+        } else {
+            camposMarcadosEstado[linha].add(campo);
+        }
+    }
+
+    async function enviarDevolucao(linha) {
         event.stopPropagation();
-        const ci = bancoDadosCIs.find(c => c.row === linha);
-        if (!ci) return;
-        linhaDevolucaoAtual = linha;
-
-        document.getElementById("devolverNomeProf").innerText = `Profissional: ${ci.nomeProfissional} — ${labelTipo(ci.tipoTroca)}`;
-        document.getElementById("camposChecklist").innerHTML = CAMPOS_CI.map(c =>
-            `<label class="campo-check"><input type="checkbox" class="chk-campo-errado" value="${c}"> ${c}</label>`
-        ).join("");
-        document.getElementById("devolverMotivo").value = "";
-        document.getElementById("devolverModal").style.display = "flex";
-    }
-
-    function fecharDevolverModal() {
-        document.getElementById("devolverModal").style.display = "none";
-        linhaDevolucaoAtual = null;
-    }
-
-    async function confirmarDevolucao() {
-        if (linhaDevolucaoAtual === null) return;
-        const linha = linhaDevolucaoAtual;
-        const motivo = document.getElementById("devolverMotivo").value.trim();
-        const camposMarcados = Array.from(document.querySelectorAll('.chk-campo-errado:checked')).map(c => c.value);
-
+        const textarea = document.getElementById(`devMotivo-${linha}`);
+        const motivo = textarea.value.trim();
         if (!motivo) return showToast("Descreva o motivo da devolução.", "error");
+
+        const camposMarcados = camposMarcadosEstado[linha] ? Array.from(camposMarcadosEstado[linha]) : [];
+        const btn = document.getElementById(`btnDevolver-${linha}`);
+        const htmlOriginal = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
 
         try {
             let res = await fetch(API_URL, {
@@ -1232,15 +1252,17 @@
                     bancoDadosCIs[ciIndex].motivoDevolucao = motivo;
                     bancoDadosCIs[ciIndex].camposErrados = camposMarcados;
                 }
-                fecharDevolverModal();
+                delete camposMarcadosEstado[linha];
                 mudarAba(abaAtual);
                 showToast("Solicitação devolvida ao responsável.", "success");
             } else {
                 showToast(data.message || "Falha ao devolver.", "error");
+                btn.disabled = false; btn.innerHTML = htmlOriginal;
             }
         } catch (e) {
             console.log("Erro ao devolver CI", e);
             showToast("Falha na comunicação.", "error");
+            btn.disabled = false; btn.innerHTML = htmlOriginal;
         }
     }
 
