@@ -122,6 +122,29 @@
         #toast.success { background-color: var(--success); }
         #toast.error { background-color: var(--danger); }
 
+        /* MODAL DE NOTIFICAÇÕES (avisos de CIs concluídas/devolvidas ao solicitante) */
+        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.55); z-index:2100; justify-content:center; align-items:center; padding:20px; }
+        .modal-box { background:#fff; border-radius:14px; padding:24px; max-width:440px; width:100%; max-height:80vh; overflow-y:auto; box-shadow:0 20px 40px -10px rgba(0,0,0,0.3); }
+        .modal-box h3 { margin-bottom:16px; font-size:17px; text-align:left; }
+        .notif-item { display:flex; gap:10px; align-items:flex-start; padding:12px; border-radius:8px; margin-bottom:10px; font-size:14px; line-height:1.5; border:1px solid var(--border); }
+        .notif-item:last-child { margin-bottom: 0; }
+        .notif-item i { font-size:18px; margin-top:2px; }
+        .notif-item.concluida { background:#ecfdf5; border-color:#a7f3d0; }
+        .notif-item.concluida i { color:var(--success); }
+        .notif-item.devolvida { background:#fef2f2; border-color:#fecaca; }
+        .notif-item.devolvida i { color:var(--danger); }
+        .notif-item span { color:#64748b; font-weight:400; font-size:12.5px; }
+        .notif-motivo { margin-top:4px; font-size:13px; color:#7f1d1d; font-style:italic; }
+        #notifModal button { margin-top: 14px; }
+
+        /* AÇÕES ADMINISTRATIVAS (excluir / devolver solicitação) */
+        .admin-actions { display:flex; gap:10px; margin-top:12px; }
+        .btn-perigo, .btn-alerta { width:auto; flex:1; padding:10px; font-size:13px; }
+        .btn-perigo { background:#fff; color:var(--danger); border:2px solid var(--danger); }
+        .btn-perigo:hover { background:var(--danger); color:#fff; }
+        .btn-alerta { background:#fff; color:var(--warning); border:2px solid var(--warning); }
+        .btn-alerta:hover { background:var(--warning); color:#fff; }
+
         @media (max-width: 600px) {
             .form-row { flex-direction: column; gap: 0; }
             .user-header { flex-direction: column; gap: 15px; }
@@ -324,6 +347,14 @@
 </div>
 
 <div id="toast"></div>
+
+<div id="notifModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-bell"></i> Atualizações das suas solicitações</h3>
+        <div id="notifModalBody"></div>
+        <button type="button" onclick="fecharNotifModal()"><i class="fa-solid fa-check"></i> Entendi</button>
+    </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -562,7 +593,10 @@
                 document.getElementById("lblUser").innerText = nomeFormatado;
                 document.getElementById("btnAreaRestrita").style.display = data.admin ? "block" : "none";
                 showToast(`Bem-vindo, ${nomeFormatado}!`, "success");
-                navegar("pageIndex"); carregarUnidades();
+                carregarUnidades();
+                // Administrador vai direto para o Acesso Restrito; demais usuários veem o menu normal.
+                if (data.admin) { abrirAreaRestrita(); } else { navegar("pageIndex"); }
+                buscarNotificacoesUsuario(data.usuario);
             } else showToast("Credenciais inválidas.", "error");
         } catch(err) { showToast("Erro de conexão. Verifique sua internet e tente novamente.", "error"); } 
         finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Acessar'; esconderOverlay(); }
@@ -633,6 +667,48 @@
 
     function voltarIndex() { navegar("pageIndex"); }
     function logout() { usuarioLogado = null; navegar("pageLogin"); document.getElementById("formLogin").reset(); }
+
+    /* ========================================================
+       NOTIFICAÇÕES DO SOLICITANTE
+       Ao logar, busca avisos pendentes (CIs concluídas ou devolvidas pelo
+       administrador). Se houver mais de um, todos aparecem juntos no mesmo
+       aviso, em vez de vários popups empilhados na tela.
+       ======================================================== */
+    async function buscarNotificacoesUsuario(usuario) {
+        try {
+            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "buscarNotificacoes", usuario: usuario }) });
+            let data = await res.json();
+            if (data.success && data.notificacoes && data.notificacoes.length > 0) {
+                exibirNotificacoes(data.notificacoes);
+            }
+        } catch (e) { console.log("Erro ao buscar notificações", e); }
+    }
+
+    function exibirNotificacoes(lista) {
+        const corpo = document.getElementById("notifModalBody");
+        corpo.innerHTML = lista.map(n => {
+            if (n.tipo === "devolvida") {
+                return `<div class="notif-item devolvida">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <div>
+                        A solicitação de <strong>${labelTipo(n.tipoTroca)}</strong> referente ao profissional <strong>${n.nomeProfissional}</strong>
+                        <span>(solicitada em ${n.dataSolicitacao})</span> foi <strong>devolvida</strong> pelo administrador.
+                        <div class="notif-motivo"><i class="fa-solid fa-circle-info"></i> Motivo: ${n.motivo}</div>
+                    </div>
+                </div>`;
+            }
+            return `<div class="notif-item concluida">
+                <i class="fa-solid fa-circle-check"></i>
+                <div>
+                    A solicitação de <strong>${labelTipo(n.tipoTroca)}</strong> referente ao profissional <strong>${n.nomeProfissional}</strong>
+                    <span>(solicitada em ${n.dataSolicitacao})</span> foi <strong>concluída</strong>.
+                </div>
+            </div>`;
+        }).join("");
+        document.getElementById("notifModal").style.display = "flex";
+    }
+
+    function fecharNotifModal() { document.getElementById("notifModal").style.display = "none"; }
 
     document.getElementById("formCI").addEventListener("submit", async function(e) {
         e.preventDefault();
@@ -749,9 +825,12 @@
         const termoBusca = document.getElementById('inputBuscaCI').value.toLowerCase();
         
         let listaFiltrada = bancoDadosCIs.filter(ci => {
-            // 1. Filtro da Aba (Pendente vs Concluído)
+            // 1. Filtro da Aba (Pendente vs Concluído/Devolvido)
+            // Uma CI devolvida sai da fila de pendentes (não há mais nada a validar nela)
+            // e passa a aparecer no Histórico, junto com as concluídas.
             let concluido = (ci.statusCNES === true && ci.statusCELK === true);
-            let passaAba = (abaAtual === 'historico') ? concluido : !concluido;
+            let finalizado = concluido || ci.devolvida;
+            let passaAba = (abaAtual === 'historico') ? finalizado : !finalizado;
             
             // 2. Filtro da Lupa (Pesquisa Global)
             let passaBusca = true;
@@ -787,6 +866,8 @@
                 if (!ci.statusCNES) tags.push("CNES");
                 if (!ci.statusCELK) tags.push("CELK");
                 tagPendente = `<span style="float:right; font-size:11px; font-weight:bold; color:var(--warning); background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid var(--warning);">FALTA: ${tags.join(' e ')}</span>`;
+            } else if (ci.devolvida) {
+                tagPendente = `<span style="float:right; font-size:11px; font-weight:bold; color:var(--danger); background:#fef2f2; padding:2px 6px; border-radius:4px; border:1px solid var(--danger);">DEVOLVIDA</span>`;
             }
 
             item.innerHTML = `
@@ -821,6 +902,7 @@
                 <strong><i class="fa-solid fa-building"></i> Origem:</strong> ${ci.unidadeAtual}<br>
                 <strong><i class="fa-solid fa-hospital"></i> Destino:</strong> ${ci.unidadeDestino}<br>
                 <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${ci.equipe}
+                ${ci.devolvida ? `<br><strong style="color:var(--danger);"><i class="fa-solid fa-rotate-left"></i> Motivo da devolução:</strong> ${ci.motivoDevolucao} <span class="audit-info">${ci.infoAcaoAdmin}</span>` : ""}
                 
                 <!-- Botoes de Validação com Auditoria -->
                 <div class="confirm-actions">
@@ -845,6 +927,18 @@
                 <button type="button" class="btn-valida btn-obs-salvar" id="btnObs-${ci.row}" onclick="salvarObservacao(${ci.row})">
                     <i class="fa-solid fa-floppy-disk"></i> Salvar Observação
                 </button>
+
+                <!-- Ações administrativas: excluir definitivamente ou devolver ao solicitante -->
+                <hr style="border-top:1px dashed #cbd5e1; margin:12px 0 8px;">
+                <div class="admin-actions">
+                    <button type="button" class="btn-perigo" onclick="confirmarExclusao(${ci.row})">
+                        <i class="fa-solid fa-trash"></i> Excluir
+                    </button>
+                    ${!ci.devolvida ? `
+                    <button type="button" class="btn-alerta" onclick="abrirDevolucao(${ci.row})">
+                        <i class="fa-solid fa-rotate-left"></i> Devolver
+                    </button>` : ""}
+                </div>
             `;
             divLista.append(item, det);
         });
@@ -869,6 +963,7 @@
             "Solicitante": ci.remetente,
             "Status CNES": ci.statusCNES ? "Concluído" : "Pendente",
             "Status CELK": ci.statusCELK ? "Concluído" : "Pendente",
+            "Situação": ci.devolvida ? `Devolvida (${ci.motivoDevolucao})` : ((ci.statusCNES && ci.statusCELK) ? "Concluída" : "Em aberto"),
             "Observação": ci.observacao || ""
         }));
     }
@@ -1002,6 +1097,71 @@
             showToast("Falha na comunicação.", "error");
         } finally {
             btn.disabled = false; btn.innerHTML = htmlOriginal;
+        }
+    }
+
+    /* ========================================================
+       AÇÕES ADMINISTRATIVAS: EXCLUIR / DEVOLVER SOLICITAÇÃO
+       ======================================================== */
+    function confirmarExclusao(linha) {
+        event.stopPropagation();
+        const ci = bancoDadosCIs.find(c => c.row === linha);
+        if (!ci) return;
+        if (!confirm(`Excluir definitivamente a solicitação de "${ci.nomeProfissional}"?\n\nEsta ação não pode ser desfeita.`)) return;
+        executarExclusao(linha);
+    }
+
+    async function executarExclusao(linha) {
+        try {
+            let res = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "excluirCI", row: linha, usuarioAdmin: usuarioLogado.usuario })
+            });
+            let data = await res.json();
+
+            if (data.success) {
+                bancoDadosCIs = bancoDadosCIs.filter(c => c.row !== linha);
+                mudarAba(abaAtual);
+                showToast("Solicitação excluída.", "success");
+            } else {
+                showToast(data.message || "Falha ao excluir.", "error");
+            }
+        } catch (e) {
+            console.log("Erro ao excluir CI", e);
+            showToast("Falha na comunicação.", "error");
+        }
+    }
+
+    async function abrirDevolucao(linha) {
+        event.stopPropagation();
+        const ci = bancoDadosCIs.find(c => c.row === linha);
+        if (!ci) return;
+
+        const motivo = prompt(`Informe o motivo da devolução da solicitação de "${ci.nomeProfissional}":`);
+        if (motivo === null) return; // administrador cancelou
+        if (!motivo.trim()) return showToast("Informe um motivo para devolver a solicitação.", "error");
+
+        try {
+            let res = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "devolverCI", row: linha, usuarioAdmin: usuarioLogado.usuario, motivo: motivo.trim() })
+            });
+            let data = await res.json();
+
+            if (data.success) {
+                let ciIndex = bancoDadosCIs.findIndex(c => c.row === linha);
+                if (ciIndex > -1) {
+                    bancoDadosCIs[ciIndex].devolvida = true;
+                    bancoDadosCIs[ciIndex].motivoDevolucao = motivo.trim();
+                }
+                mudarAba(abaAtual);
+                showToast("Solicitação devolvida ao responsável.", "success");
+            } else {
+                showToast(data.message || "Falha ao devolver.", "error");
+            }
+        } catch (e) {
+            console.log("Erro ao devolver CI", e);
+            showToast("Falha na comunicação.", "error");
         }
     }
 </script>
