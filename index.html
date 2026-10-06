@@ -72,6 +72,13 @@
         .tab-btn:hover { background: #e2e8f0; transform: none; box-shadow: none; color: var(--text); }
         .tab-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
+        /* Botão discreto de atualizar a lista + indicador de última atualização */
+        .btn-atualizar { flex: 0 0 auto; width: 40px; padding: 0; background: transparent; color: #64748b; border-radius: 8px; display:flex; align-items:center; justify-content:center; }
+        .btn-atualizar:hover { background: #e2e8f0; color: var(--primary); transform: none; box-shadow: none; }
+        .btn-atualizar.girando i { animation: girar 0.6s linear; }
+        @keyframes girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .ultima-att { flex: 0 0 auto; align-self: center; font-size: 10.5px; color: #94a3b8; padding-right: 4px; white-space: nowrap; }
+
         .ci-item { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border); border-left: 5px solid var(--primary); transition: 0.2s; }
         .ci-item:hover { background: #f4f8fc; border-left-color: var(--primary-dark); }
         .ci-item.exclusao { border-left-color: var(--danger); }
@@ -157,6 +164,23 @@
         .dica-devolucao { font-size:12px; color:#64748b; margin:4px 0 8px; }
         .btn-confirmar-devolucao { width:100%; padding:10px; font-size:13px; background:var(--warning); color:#fff; border:2px solid var(--warning); margin-top:8px; }
         .btn-confirmar-devolucao:hover { opacity:0.9; }
+
+        /* Botão "Corrigir Solicitação" dentro do modal de notificações */
+        .btn-corrigir { margin-top:10px; width:100%; padding:9px; font-size:12.5px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; }
+        .btn-corrigir:hover { opacity:0.9; }
+
+        /* Modal de correção: campos editáveis pré-preenchidos, destacando os marcados */
+        .campo-correcao-label { display:block; font-size:12.5px; font-weight:600; color:#334155; margin:10px 0 4px; }
+        .campo-correcao-label.marcado { color:var(--danger); }
+        .campo-correcao-label.marcado i { margin-left:4px; }
+        .input-correcao { width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; box-sizing:border-box; }
+        .input-correcao.marcado { border:2px solid var(--danger); outline:2px solid #fecaca; background:#fef2f2; }
+
+        /* Paginação do Histórico */
+        .paginacao { display:flex; align-items:center; justify-content:center; gap:14px; margin:4px 0 16px; }
+        .pag-btn { width:auto; padding:8px 14px; font-size:13px; }
+        .pag-btn:disabled { opacity:0.4; cursor:not-allowed; }
+        .pag-info { font-size:12.5px; color:#64748b; }
 
         /* Lista de solicitações excluídas (auditoria) */
         .excluida-item { padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; font-size:13.5px; background:#f8fafc; }
@@ -339,12 +363,16 @@
             <button class="tab-btn" id="btnTabHistorico" onclick="mudarAba('historico')">
                 <i class="fa-solid fa-check-double"></i> Histórico
             </button>
+            <button type="button" class="btn-atualizar" id="btnAtualizarCIs" title="Atualizar lista agora" onclick="atualizarListaCIs(true)">
+                <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+            <span class="ultima-att" id="ultimaAtualizacaoTexto"></span>
         </div>
         <!-- NOVA BARRA DE PESQUISA -->
         <div class="search-bar" id="searchContainer">
             <div class="search-bar-input-wrap">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="inputBuscaCI" placeholder="Buscar por palavra-chave (Ex: Residente, Médico, CPF...)" oninput="aplicarFiltros()">
+                <input type="text" id="inputBuscaCI" placeholder="Buscar por palavra-chave (Ex: Residente, Médico, CPF...)" oninput="paginaAtual = 1; aplicarFiltros()">
             </div>
             <button type="button" class="export-btn" id="btnExportPDF" title="Exportar esta lista em PDF" onclick="exportarPDF()">
                 <i class="fa-solid fa-file-pdf"></i>
@@ -358,6 +386,7 @@
         </div>
 
         <div id="listaCIs" style="margin-bottom: 20px;">Carregando histórico...</div>
+        <div id="paginacaoCIs" class="paginacao"></div>
         <button type="button" class="btn-secondary" onclick="voltarIndex()"><i class="fa-solid fa-arrow-left"></i> Voltar ao Menu</button>
     </div>
 </div>
@@ -375,6 +404,21 @@
         <h3><i class="fa-solid fa-bell"></i> Atualizações das suas solicitações</h3>
         <div id="notifModalBody"></div>
         <button type="button" onclick="fecharNotifModal()"><i class="fa-solid fa-check"></i> Entendi</button>
+    </div>
+</div>
+
+<div id="corrigirModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:480px;">
+        <h3><i class="fa-solid fa-pen-to-square"></i> Corrigir Solicitação</h3>
+        <p id="corrigirSubtitulo" style="color:#64748b; font-size:13px; margin-bottom:4px;"></p>
+        <p id="corrigirMotivoTexto" class="notif-motivo" style="margin-bottom:10px;"></p>
+        <div id="corrigirCampos"></div>
+        <div class="admin-actions" style="margin-top:16px;">
+            <button type="button" class="btn-secondary" onclick="fecharCorrigirModal()">Cancelar</button>
+            <button type="button" class="btn-confirmar-devolucao" id="btnReenviar" onclick="reenviarCorrecao()">
+                <i class="fa-solid fa-paper-plane"></i> Reenviar Solicitação
+            </button>
+        </div>
     </div>
 </div>
 
@@ -397,6 +441,8 @@
     let bancoDadosCIs = []; 
     let abaAtual = 'pendentes'; 
     let ultimaListaFiltrada = []; // guarda o resultado da última busca/filtro para exportação
+    let paginaAtual = 1;
+    const ITENS_POR_PAGINA = 30; // só se aplica ao Histórico, e só quando não há busca ativa
 
     const unidades = [
         "ESF 01 – RUI RAMOS", "ESF 02 – MARDUQUE", "ESF 03 – CIDADE NOVA", "ESF 04 – COHAB", 
@@ -695,8 +741,8 @@
         navegar("pageForm"); verificarEquipe();
     }
 
-    function voltarIndex() { navegar("pageIndex"); }
-    function logout() { usuarioLogado = null; navegar("pageLogin"); document.getElementById("formLogin").reset(); }
+    function voltarIndex() { pararAutoAtualizacao(); navegar("pageIndex"); }
+    function logout() { pararAutoAtualizacao(); usuarioLogado = null; navegar("pageLogin"); document.getElementById("formLogin").reset(); }
 
     /* ========================================================
        NOTIFICAÇÕES DO SOLICITANTE
@@ -729,6 +775,9 @@
                         <span>(solicitada em ${n.dataSolicitacao})</span> foi <strong>devolvida</strong> pelo administrador.
                         <div class="notif-motivo"><i class="fa-solid fa-circle-info"></i> Motivo: ${n.motivo}</div>
                         ${camposHtml}
+                        ${n.linha ? `<button type="button" class="btn-corrigir" onclick="abrirCorrecaoNotificacao(${n.linha})">
+                            <i class="fa-solid fa-pen-to-square"></i> Corrigir Solicitação
+                        </button>` : ""}
                     </div>
                 </div>`;
             }
@@ -744,6 +793,130 @@
     }
 
     function fecharNotifModal() { document.getElementById("notifModal").style.display = "none"; }
+
+    /* ========================================================
+       CORREÇÃO DE SOLICITAÇÃO DEVOLVIDA (pelo solicitante)
+       Abre um modal com os dados originalmente enviados, destacando em vermelho
+       (circulado) os campos que o administrador marcou como incorretos. O solicitante
+       pode editar qualquer campo e reenviar ao final.
+       ======================================================== */
+    // Define quais campos aparecem no modal de correção e a qual(is) chave(s) do
+    // objeto da CI e rótulo de marcação (igual ao usado pelo admin) cada um corresponde.
+    const CAMPOS_FORM_DEFS = [
+        { label: "Nome do Profissional", chave: "nomeProfissional", obrigatorio: true },
+        { label: "CPF", chave: "cpf", obrigatorio: true },
+        { label: "CBO/Função", chave: "cbo", obrigatorio: true },
+        { label: "Unidade de Origem", chave: "unidadeAtual", obrigatorio: true },
+        { label: "Unidade de Destino", chave: "unidadeDestino", obrigatorio: true },
+        { label: "Equipe", chave: "equipe", condicional: true },
+        { label: "Conselho de Classe", chave: "conselho", condicional: true },
+        { label: "Vínculo/Carga Horária", chave: ["vinculo", "cargaHoraria"], condicional: true },
+        { label: "Área/Microárea", chave: ["area", "microArea"], condicional: true },
+        { label: "Data de Entrada", chave: "dataEntrada", condicional: true },
+        { label: "Data de Desligamento", chave: "dataDesligamento", condicional: true },
+        { label: "Tempo Estimado", chave: "tempoEstimadoDias", condicional: true }
+    ];
+
+    let linhaCorrecaoAtual = null;
+
+    async function abrirCorrecaoNotificacao(linha) {
+        try {
+            let res = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "obterCIParaCorrecao", row: linha, usuario: usuarioLogado.usuario })
+            });
+            let data = await res.json();
+            if (data.success) {
+                fecharNotifModal();
+                abrirCorrecao(data.dados);
+            } else {
+                showToast(data.message || "Não foi possível carregar a solicitação.", "error");
+            }
+        } catch (e) {
+            console.log("Erro ao buscar CI para correção", e);
+            showToast("Falha na comunicação.", "error");
+        }
+    }
+
+    function abrirCorrecao(ci) {
+        linhaCorrecaoAtual = ci.row;
+        document.getElementById("corrigirSubtitulo").innerText = `${labelTipo(ci.tipoTroca)} — enviada em ${ci.dataHora}`;
+        document.getElementById("corrigirMotivoTexto").innerHTML = `<i class="fa-solid fa-circle-info"></i> Motivo da devolução: ${ci.motivoDevolucao}`;
+
+        const marcados = ci.camposErrados || [];
+        let html = "";
+        CAMPOS_FORM_DEFS.forEach(def => {
+            const marcado = marcados.includes(def.label);
+            if (Array.isArray(def.chave)) {
+                const v1 = ci[def.chave[0]], v2 = ci[def.chave[1]];
+                if (def.condicional && (!v1 || v1 === "Não se aplica") && (!v2 || v2 === "Não se aplica")) return;
+                html += `
+                    <label class="campo-correcao-label${marcado ? ' marcado' : ''}">${def.label}${marcado ? ' <i class="fa-solid fa-circle-exclamation"></i>' : ''}</label>
+                    <input type="text" class="input-correcao${marcado ? ' marcado' : ''}" id="corr-${def.chave[0]}" value="${(v1 || '').toString().replace(/"/g, '&quot;')}" style="margin-bottom:6px;">
+                    <input type="text" class="input-correcao${marcado ? ' marcado' : ''}" id="corr-${def.chave[1]}" value="${(v2 || '').toString().replace(/"/g, '&quot;')}">
+                `;
+            } else {
+                const v = ci[def.chave];
+                if (def.condicional && (!v || v === "Não se aplica")) return;
+                html += `
+                    <label class="campo-correcao-label${marcado ? ' marcado' : ''}">${def.label}${marcado ? ' <i class="fa-solid fa-circle-exclamation"></i>' : ''}</label>
+                    <input type="text" class="input-correcao${marcado ? ' marcado' : ''}" id="corr-${def.chave}" value="${(v || '').toString().replace(/"/g, '&quot;')}">
+                `;
+            }
+        });
+
+        document.getElementById("corrigirCampos").innerHTML = html;
+        document.getElementById("corrigirModal").style.display = "flex";
+    }
+
+    function fecharCorrigirModal() {
+        document.getElementById("corrigirModal").style.display = "none";
+        linhaCorrecaoAtual = null;
+    }
+
+    async function reenviarCorrecao() {
+        if (linhaCorrecaoAtual === null) return;
+        const linha = linhaCorrecaoAtual;
+        const payload = { action: "reenviarCI", row: linha, usuario: usuarioLogado.usuario };
+
+        let faltaObrigatorio = false;
+        CAMPOS_FORM_DEFS.forEach(def => {
+            if (Array.isArray(def.chave)) {
+                const el1 = document.getElementById(`corr-${def.chave[0]}`);
+                const el2 = document.getElementById(`corr-${def.chave[1]}`);
+                if (el1) payload[def.chave[0]] = el1.value.trim();
+                if (el2) payload[def.chave[1]] = el2.value.trim();
+            } else {
+                const el = document.getElementById(`corr-${def.chave}`);
+                if (el) {
+                    payload[def.chave] = el.value.trim();
+                    if (def.obrigatorio && !el.value.trim()) faltaObrigatorio = true;
+                }
+            }
+        });
+
+        if (faltaObrigatorio) return showToast("Preencha todos os campos obrigatórios.", "error");
+
+        const btn = document.getElementById("btnReenviar");
+        const htmlOriginal = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+
+        try {
+            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+            let data = await res.json();
+            if (data.success) {
+                fecharCorrigirModal();
+                showToast("Solicitação corrigida e reenviada!", "success");
+            } else {
+                showToast(data.message || "Falha ao reenviar.", "error");
+            }
+        } catch (e) {
+            console.log("Erro ao reenviar correção", e);
+            showToast("Falha na comunicação.", "error");
+        } finally {
+            btn.disabled = false; btn.innerHTML = htmlOriginal;
+        }
+    }
 
     document.getElementById("formCI").addEventListener("submit", async function(e) {
         e.preventDefault();
@@ -830,11 +1003,14 @@
     // Fica true assim que o histórico completo (todas as CIs, não só as em aberto) já
     // foi carregado nesta sessão do painel, para não buscar tudo de novo a cada clique.
     let historicoCarregadoCompleto = false;
+    let linhasExpandidas = new Set(); // quais CIs estão com o detalhe aberto — preservado entre atualizações
+    let intervaloAutoAtualizacao = null;
 
     async function abrirAreaRestrita() {
         navegar("pageRestrita");
         document.getElementById("listaCIs").innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary);"></i></div>';
         historicoCarregadoCompleto = false;
+        linhasExpandidas.clear();
 
         try {
             // Carrega só as solicitações em aberto no login — é o que o administrador
@@ -846,12 +1022,87 @@
             if(resData.success) {
                 bancoDadosCIs = resData.dados.reverse();
                 mudarAba('pendentes'); 
+                marcarUltimaAtualizacao();
             }
         } catch(err) { document.getElementById("listaCIs").innerHTML = "<div style='color:red; text-align:center;'>Erro de conexão com o banco.</div>"; }
+
+        iniciarAutoAtualizacao();
     }
+
+    /* ========================================================
+       ATUALIZAÇÃO DA LISTA DE CIs
+       - Automática: a cada 1 minuto, enquanto o painel restrito estiver aberto.
+       - Manual: pelo botãozinho de atualizar (girando) ou pressionando F5/Ctrl+R,
+         que é interceptado para atualizar os dados em vez de recarregar a página.
+       ======================================================== */
+    function iniciarAutoAtualizacao() {
+        pararAutoAtualizacao(); // evita duplicar o timer se a função for chamada de novo
+        intervaloAutoAtualizacao = setInterval(() => atualizarListaCIs(false), 60000);
+    }
+
+    function pararAutoAtualizacao() {
+        if (intervaloAutoAtualizacao) {
+            clearInterval(intervaloAutoAtualizacao);
+            intervaloAutoAtualizacao = null;
+        }
+    }
+
+    function marcarUltimaAtualizacao() {
+        const agora = new Date();
+        const hh = agora.getHours().toString().padStart(2, "0");
+        const mm = agora.getMinutes().toString().padStart(2, "0");
+        const el = document.getElementById("ultimaAtualizacaoTexto");
+        if (el) el.innerText = `Atualizado às ${hh}:${mm}`;
+    }
+
+    async function atualizarListaCIs(manual) {
+        // Numa atualização automática (silenciosa), não mexe se o admin estiver digitando
+        // em algum campo (observação, motivo da devolução etc.) — não queremos atrapalhar
+        // ou perder o que ele está escrevendo. A manual (botão/F5) sempre executa.
+        const ativo = document.activeElement;
+        const estaDigitando = ativo && (ativo.tagName === "TEXTAREA" || ativo.tagName === "INPUT");
+        if (estaDigitando && !manual) return;
+
+        const btn = document.getElementById("btnAtualizarCIs");
+        if (btn) btn.classList.add("girando");
+
+        try {
+            // Se o histórico completo já foi carregado nesta sessão, mantém buscando tudo
+            // (senão as duas abas ficariam dessincronizadas); senão, continua leve.
+            let res = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "listarCIs", apenasPendentes: !historicoCarregadoCompleto })
+            });
+            let resData = await res.json();
+            if (resData.success) {
+                bancoDadosCIs = resData.dados.reverse();
+                aplicarFiltros();
+                marcarUltimaAtualizacao();
+                if (manual) showToast("Lista atualizada.", "success");
+            }
+        } catch (e) {
+            console.log("Erro ao atualizar lista", e);
+            if (manual) showToast("Falha ao atualizar.", "error");
+        } finally {
+            if (btn) setTimeout(() => btn.classList.remove("girando"), 600);
+        }
+    }
+
+    // Intercepta F5 e Ctrl+R: em vez de recarregar o navegador (o que derrubaria a sessão
+    // e obrigaria logar de novo), atualiza a lista de CIs na hora, só enquanto o painel
+    // restrito estiver na tela.
+    document.addEventListener("keydown", (e) => {
+        const teclaF5 = e.key === "F5";
+        const teclaCtrlR = (e.ctrlKey || e.metaKey) && (e.key === "r" || e.key === "R");
+        if ((teclaF5 || teclaCtrlR) && document.getElementById("pageRestrita").classList.contains("active")) {
+            e.preventDefault();
+            atualizarListaCIs(true);
+        }
+    });
 
     async function mudarAba(nomeAba) {
         abaAtual = nomeAba;
+        paginaAtual = 1;
         document.getElementById('btnTabPendentes').classList.toggle('active', abaAtual === 'pendentes');
         document.getElementById('btnTabHistorico').classList.toggle('active', abaAtual === 'historico');
 
@@ -903,8 +1154,44 @@
             return passaAba && passaBusca;
         });
 
-        renderizarCIs(listaFiltrada);
+        // A exportação (Excel/PDF) sempre usa a lista completa filtrada (sem paginar):
+        // se não há busca, exporta tudo; se há busca, exporta só o que bateu com ela.
         ultimaListaFiltrada = listaFiltrada;
+
+        // Paginação: só faz sentido no Histórico (que pode acumular muitos registros) e
+        // só quando não há busca ativa — pesquisando, mostra todos os resultados de uma vez.
+        let listaParaExibir = listaFiltrada;
+        if (abaAtual === 'historico' && termoBusca === "") {
+            const totalPaginas = Math.max(1, Math.ceil(listaFiltrada.length / ITENS_POR_PAGINA));
+            if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+            const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+            listaParaExibir = listaFiltrada.slice(inicio, inicio + ITENS_POR_PAGINA);
+            renderizarPaginacao(listaFiltrada.length, totalPaginas);
+        } else {
+            document.getElementById("paginacaoCIs").innerHTML = "";
+        }
+
+        renderizarCIs(listaParaExibir);
+    }
+
+    function renderizarPaginacao(totalItens, totalPaginas) {
+        const container = document.getElementById("paginacaoCIs");
+        if (totalPaginas <= 1) { container.innerHTML = ""; return; }
+
+        container.innerHTML = `
+            <button type="button" class="pag-btn" ${paginaAtual === 1 ? 'disabled' : ''} onclick="irParaPagina(${paginaAtual - 1})">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span class="pag-info">Página ${paginaAtual} de ${totalPaginas} (${totalItens} registros)</span>
+            <button type="button" class="pag-btn" ${paginaAtual === totalPaginas ? 'disabled' : ''} onclick="irParaPagina(${paginaAtual + 1})">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        `;
+    }
+
+    function irParaPagina(pagina) {
+        paginaAtual = pagina;
+        aplicarFiltros();
     }
 
     function renderizarCIs(lista) {
@@ -936,9 +1223,15 @@
                 <div style="font-size:12px; color:#64748b; margin-top:4px;">${labelTipo(ci.tipoTroca)} • Enviado em ${ci.dataHora}</div>
             `;
             
-            item.onclick = () => { let d = document.getElementById(`det-${i}`); d.style.display = d.style.display === "block" ? "none" : "block"; };
+            item.onclick = () => {
+                let d = document.getElementById(`det-${ci.row}`);
+                let abrindo = d.style.display !== "block";
+                d.style.display = abrindo ? "block" : "none";
+                if (abrindo) { linhasExpandidas.add(ci.row); } else { linhasExpandidas.delete(ci.row); }
+            };
             
-            let det = document.createElement("div"); det.id = `det-${i}`; det.className = "ci-details";
+            let det = document.createElement("div"); det.id = `det-${ci.row}`; det.className = "ci-details";
+            if (linhasExpandidas.has(ci.row)) det.style.display = "block"; // preserva o que já estava aberto antes da atualização
             
             let detalhesExtras = "";
             if(ci.conselho && ci.conselho !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-id-badge"></i> Conselho:</strong> ${campoClicavel(ci, "Conselho de Classe", ci.conselho)}<br>`;
@@ -961,7 +1254,7 @@
                 <hr style="border-top:1px solid #cbd5e1; margin:8px 0;">
                 <strong><i class="fa-solid fa-building"></i> Origem:</strong> ${campoClicavel(ci, "Unidade de Origem", ci.unidadeAtual)}<br>
                 <strong><i class="fa-solid fa-hospital"></i> Destino:</strong> ${campoClicavel(ci, "Unidade de Destino", ci.unidadeDestino)}<br>
-                <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${campoClicavel(ci, "Equipe/Microárea", ci.equipe)}
+                <strong><i class="fa-solid fa-users"></i> Equipe:</strong> ${campoClicavel(ci, "Equipe", ci.equipe)}
                 ${ci.devolvida ? `<br><strong style="color:var(--danger);"><i class="fa-solid fa-rotate-left"></i> Motivo da devolução:</strong> ${ci.motivoDevolucao} <span class="audit-info">${ci.infoAcaoAdmin}</span>
                 ${ci.camposErrados && ci.camposErrados.length > 0 ? `<div class="notif-campos">${ci.camposErrados.map(c => `<span class="campo-marcado"><i class="fa-solid fa-circle-exclamation"></i> ${c}</span>`).join("")}</div>` : ""}` : ""}
                 
