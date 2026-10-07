@@ -169,12 +169,16 @@
         .btn-corrigir { margin-top:10px; width:100%; padding:9px; font-size:12.5px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; }
         .btn-corrigir:hover { opacity:0.9; }
 
-        /* Modal de correção: campos editáveis pré-preenchidos, destacando os marcados */
-        .campo-correcao-label { display:block; font-size:12.5px; font-weight:600; color:#334155; margin:10px 0 4px; }
-        .campo-correcao-label.marcado { color:var(--danger); }
-        .campo-correcao-label.marcado i { margin-left:4px; }
-        .input-correcao { width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; box-sizing:border-box; }
-        .input-correcao.marcado { border:2px solid var(--danger); outline:2px solid #fecaca; background:#fef2f2; }
+        /* Banner de contexto no topo do formulário, quando está em modo de correção */
+        .banner-correcao { display:flex; gap:10px; align-items:flex-start; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 14px; margin-bottom:16px; font-size:13px; }
+        .banner-correcao i { color:var(--danger); font-size:18px; margin-top:2px; }
+        .banner-correcao strong { color:var(--danger); display:block; margin-bottom:2px; }
+        .banner-correcao p { margin:0; color:#7f1d1d; }
+
+        /* Destaque (circulado em vermelho) nos campos do formulário real que o
+           administrador marcou como incorretos, durante a correção da solicitação */
+        .campo-devolvido { border: 2px solid var(--danger) !important; outline: 2px solid #fecaca; background: #fef2f2 !important; border-radius: 8px; }
+        #boxUnidadesSecundarias.campo-devolvido { padding: 10px; }
 
         /* Paginação do Histórico */
         .paginacao { display:flex; align-items:center; justify-content:center; gap:14px; margin:4px 0 16px; }
@@ -240,6 +244,13 @@
 
     <div id="pageForm" class="page">
         <h2 id="formTitle">Formulário</h2>
+        <div id="bannerCorrecao" class="banner-correcao" style="display:none;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div>
+                <strong>Solicitação devolvida pelo administrador</strong>
+                <p id="bannerCorrecaoMotivo"></p>
+            </div>
+        </div>
         <form id="formCI">
             <div class="form-group">
                 <label>Nome Completo do Profissional</label>
@@ -403,22 +414,7 @@
     <div class="modal-box">
         <h3><i class="fa-solid fa-bell"></i> Atualizações das suas solicitações</h3>
         <div id="notifModalBody"></div>
-        <button type="button" onclick="fecharNotifModal()"><i class="fa-solid fa-check"></i> Entendi</button>
-    </div>
-</div>
-
-<div id="corrigirModal" class="modal-overlay">
-    <div class="modal-box" style="max-width:480px;">
-        <h3><i class="fa-solid fa-pen-to-square"></i> Corrigir Solicitação</h3>
-        <p id="corrigirSubtitulo" style="color:#64748b; font-size:13px; margin-bottom:4px;"></p>
-        <p id="corrigirMotivoTexto" class="notif-motivo" style="margin-bottom:10px;"></p>
-        <div id="corrigirCampos"></div>
-        <div class="admin-actions" style="margin-top:16px;">
-            <button type="button" class="btn-secondary" onclick="fecharCorrigirModal()">Cancelar</button>
-            <button type="button" class="btn-confirmar-devolucao" id="btnReenviar" onclick="reenviarCorrecao()">
-                <i class="fa-solid fa-paper-plane"></i> Reenviar Solicitação
-            </button>
-        </div>
+        <button type="button" id="notifModalBtnRodape"><i class="fa-solid fa-check"></i> Entendi</button>
     </div>
 </div>
 
@@ -455,7 +451,7 @@
         "AGENDAMENTO", "UNIDADE SENTINELA", "CAPS AD", "CAPS II", "AMBULATÓRIO DE SAÚDE MENTAL", "CAMMI",
         "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA", "UNIDADE PRISIONAL", "FARMÁCIA MUNICIPAL DE URUGUAIANA", 
         "FARMÁCIA TABAJARA BRITES", "FARMÁCIA UNIÃO DAS VILAS", "FARMÁCIA HIPICA", "FARMÁCIA DO INTERIOR - ESF 09 BARRAGEM",
-        "FARMÁCIA DA UBS 10 - SAO MARCOS", "FARMÁCIA DA UBS 11 - JOÃO ARREGUI"
+        "FARMÁCIA DA UBS 10 - SAO MARCOS", "FARMÁCIA DA UBS 11 - JOÃO ARREGUI", "FARMÁCIA DO SERVIÇO DE SAÚDE MENTAL"
     ];
 
     const semEquipe = [
@@ -466,13 +462,31 @@
         "AGENDAMENTO", "UNIDADE SENTINELA", "CAPS AD", "CAPS II", "AMBULATÓRIO DE SAÚDE MENTAL", "CAMMI", 
         "SALA DE VACINAS", "VIGILÂNCIA EPIDEMIOLOGICA", "VIGILÂNCIA SANITÁRIA", "UNIDADE SENTINELA", "FARMÁCIA MUNICIPAL DE URUGUAIANA", 
         "FARMÁCIA TABAJARA BRITES", "FARMÁCIA UNIÃO DAS VILAS", "FARMÁCIA HIPICA", "FARMÁCIA DO INTERIOR - ESF 09 BARRAGEM",
-        "FARMÁCIA DA UBS 10 - SAO MARCOS", "FARMÁCIA DA UBS 11 - JOÃO ARREGUI"
+        "FARMÁCIA DA UBS 10 - SAO MARCOS", "FARMÁCIA DA UBS 11 - JOÃO ARREGUI", "FARMÁCIA DO SERVIÇO DE SAÚDE MENTAL"
         ];
 
     // Converte o nome interno "Exclusão de Profissional" (mantido por compatibilidade
     // com dados já salvos) para o nome exibido ao usuário: "Desligamento de Profissional"
     function labelTipo(tipo) {
         return tipo === "Exclusão de Profissional" ? "Desligamento de Profissional" : tipo;
+    }
+
+    // Normaliza uma data vinda da planilha (pode voltar como "AAAA-MM-DD" puro ou como
+    // datetime ISO completo, dependendo de como o Sheets guardou a célula) para o único
+    // formato que um <input type="date"> aceita: "AAAA-MM-DD".
+    function paraInputDate(dataStr) {
+        if (!dataStr || dataStr === "Não se aplica") return "";
+        if (dataStr.includes('-') && dataStr.length === 10) return dataStr;
+        if (dataStr.includes('T')) {
+            let d = new Date(dataStr);
+            if (!isNaN(d.getTime())) {
+                const ano = d.getUTCFullYear();
+                const mes = (d.getUTCMonth() + 1).toString().padStart(2, "0");
+                const dia = d.getUTCDate().toString().padStart(2, "0");
+                return `${ano}-${mes}-${dia}`;
+            }
+        }
+        return "";
     }
 
     function formatarDataBr(dataStr) {
@@ -683,6 +697,14 @@
         idKeyFormularioAtual = gerarIdKey(); // nova chave a cada formulário aberto
         document.getElementById("formTitle").innerText = `Solicitação: ${labelTipo(tipo)}`;
         document.getElementById("formCI").reset();
+        document.getElementById("btnEnviar").innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Documento';
+
+        // Limpa qualquer resquício de uma correção anterior (banner e campos destacados em
+        // vermelho) — uma solicitação nova sempre começa limpa.
+        linhaCorrecaoAtual = null;
+        document.getElementById("bannerCorrecao").style.display = "none";
+        document.querySelectorAll('.campo-devolvido').forEach(el => el.classList.remove('campo-devolvido'));
+
         analisarCBO(); toggleMultiUnidades(); 
 
         const grpNovo = document.getElementById("groupNovoProfissional");
@@ -741,7 +763,11 @@
         navegar("pageForm"); verificarEquipe();
     }
 
-    function voltarIndex() { pararAutoAtualizacao(); navegar("pageIndex"); }
+    function voltarIndex() {
+        pararAutoAtualizacao();
+        linhaCorrecaoAtual = null;
+        navegar("pageIndex");
+    }
     function logout() { pararAutoAtualizacao(); usuarioLogado = null; navegar("pageLogin"); document.getElementById("formLogin").reset(); }
 
     /* ========================================================
@@ -762,6 +788,11 @@
 
     function exibirNotificacoes(lista) {
         const corpo = document.getElementById("notifModalBody");
+        const devolvidas = lista.filter(n => n.tipo === "devolvida");
+        // Quando há só UMA devolução (o caso mais comum) e nada mais, o botão de rodapé já
+        // vira o "Corrigir Solicitação" — não precisa repetir o botão dentro do item.
+        const botaoInlineNecessario = !(lista.length === 1 && devolvidas.length === 1);
+
         corpo.innerHTML = lista.map(n => {
             if (n.tipo === "devolvida") {
                 let camposHtml = "";
@@ -775,7 +806,7 @@
                         <span>(solicitada em ${n.dataSolicitacao})</span> foi <strong>devolvida</strong> pelo administrador.
                         <div class="notif-motivo"><i class="fa-solid fa-circle-info"></i> Motivo: ${n.motivo}</div>
                         ${camposHtml}
-                        ${n.linha ? `<button type="button" class="btn-corrigir" onclick="abrirCorrecaoNotificacao(${n.linha})">
+                        ${(botaoInlineNecessario && n.linha) ? `<button type="button" class="btn-corrigir" onclick="abrirCorrecaoNotificacao(${n.linha})">
                             <i class="fa-solid fa-pen-to-square"></i> Corrigir Solicitação
                         </button>` : ""}
                     </div>
@@ -789,6 +820,23 @@
                 </div>
             </div>`;
         }).join("");
+
+        // Botão de rodapé: "Entendi" só quando há só avisos de conclusão (como era antes da
+        // correção existir); com uma única devolução, vira direto "Corrigir Solicitação";
+        // havendo mais de uma notificação com alguma devolução no meio, cada devolução já
+        // tem seu próprio botão acima, então o rodapé só serve para fechar o aviso.
+        const btnRodape = document.getElementById("notifModalBtnRodape");
+        if (devolvidas.length === 0) {
+            btnRodape.innerHTML = '<i class="fa-solid fa-check"></i> Entendi';
+            btnRodape.onclick = fecharNotifModal;
+        } else if (!botaoInlineNecessario) {
+            btnRodape.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Corrigir Solicitação';
+            btnRodape.onclick = () => abrirCorrecaoNotificacao(devolvidas[0].linha);
+        } else {
+            btnRodape.innerHTML = '<i class="fa-solid fa-xmark"></i> Fechar';
+            btnRodape.onclick = fecharNotifModal;
+        }
+
         document.getElementById("notifModal").style.display = "flex";
     }
 
@@ -796,26 +844,29 @@
 
     /* ========================================================
        CORREÇÃO DE SOLICITAÇÃO DEVOLVIDA (pelo solicitante)
-       Abre um modal com os dados originalmente enviados, destacando em vermelho
-       (circulado) os campos que o administrador marcou como incorretos. O solicitante
-       pode editar qualquer campo e reenviar ao final.
+       Reaproveita o MESMO formulário usado para abrir uma CI nova (mesmas seleções de
+       unidade, mesmas seções condicionais por tipo de troca, mesma lista de múltiplas
+       unidades), só que pré-preenchido com os dados que o profissional já tinha
+       digitado, e destacando em vermelho (circulado) os campos que o administrador
+       marcou como incorretos na devolução. O solicitante pode editar qualquer campo e
+       reenviar ao final — reenviar atualiza a mesma solicitação, em vez de criar uma nova.
        ======================================================== */
-    // Define quais campos aparecem no modal de correção e a qual(is) chave(s) do
-    // objeto da CI e rótulo de marcação (igual ao usado pelo admin) cada um corresponde.
-    const CAMPOS_FORM_DEFS = [
-        { label: "Nome do Profissional", chave: "nomeProfissional", obrigatorio: true },
-        { label: "CPF", chave: "cpf", obrigatorio: true },
-        { label: "CBO/Função", chave: "cbo", obrigatorio: true },
-        { label: "Unidade de Origem", chave: "unidadeAtual", obrigatorio: true },
-        { label: "Unidade de Destino", chave: "unidadeDestino", obrigatorio: true },
-        { label: "Equipe", chave: "equipe", condicional: true },
-        { label: "Conselho de Classe", chave: "conselho", condicional: true },
-        { label: "Vínculo/Carga Horária", chave: ["vinculo", "cargaHoraria"], condicional: true },
-        { label: "Área/Microárea", chave: ["area", "microArea"], condicional: true },
-        { label: "Data de Entrada", chave: "dataEntrada", condicional: true },
-        { label: "Data de Desligamento", chave: "dataDesligamento", condicional: true },
-        { label: "Tempo Estimado", chave: "tempoEstimadoDias", condicional: true }
-    ];
+    // Liga o rótulo de cada campo (igual ao usado pelo admin ao marcar) ao(s) id(s) do
+    // elemento correspondente no formulário real.
+    const MAPA_CAMPO_PARA_ID = {
+        "Nome do Profissional": ["profNome"],
+        "CPF": ["profCpf"],
+        "CBO/Função": ["profCbo"],
+        "Conselho de Classe": ["profConselho"],
+        "Vínculo/Carga Horária": ["profVinculo", "profCargaHoraria"],
+        "Área/Microárea": ["profArea", "profMicroArea"],
+        "Data de Entrada": ["profDataEntrada"],
+        "Data de Desligamento": ["profDataDesligamento"],
+        "Tempo Estimado": ["profTempoEstimado"],
+        "Unidade de Origem": ["unidadeAtual"],
+        "Unidade de Destino": ["unidadeDestino", "boxUnidadesSecundarias"],
+        "Equipe": ["profEquipe"]
+    };
 
     let linhaCorrecaoAtual = null;
 
@@ -828,7 +879,7 @@
             let data = await res.json();
             if (data.success) {
                 fecharNotifModal();
-                abrirCorrecao(data.dados);
+                abrirFormularioCorrecao(data.dados);
             } else {
                 showToast(data.message || "Não foi possível carregar a solicitação.", "error");
             }
@@ -838,84 +889,96 @@
         }
     }
 
-    function abrirCorrecao(ci) {
-        linhaCorrecaoAtual = ci.row;
-        document.getElementById("corrigirSubtitulo").innerText = `${labelTipo(ci.tipoTroca)} — enviada em ${ci.dataHora}`;
-        document.getElementById("corrigirMotivoTexto").innerHTML = `<i class="fa-solid fa-circle-info"></i> Motivo da devolução: ${ci.motivoDevolucao}`;
-
-        const marcados = ci.camposErrados || [];
-        let html = "";
-        CAMPOS_FORM_DEFS.forEach(def => {
-            const marcado = marcados.includes(def.label);
-            if (Array.isArray(def.chave)) {
-                const v1 = ci[def.chave[0]], v2 = ci[def.chave[1]];
-                if (def.condicional && (!v1 || v1 === "Não se aplica") && (!v2 || v2 === "Não se aplica")) return;
-                html += `
-                    <label class="campo-correcao-label${marcado ? ' marcado' : ''}">${def.label}${marcado ? ' <i class="fa-solid fa-circle-exclamation"></i>' : ''}</label>
-                    <input type="text" class="input-correcao${marcado ? ' marcado' : ''}" id="corr-${def.chave[0]}" value="${(v1 || '').toString().replace(/"/g, '&quot;')}" style="margin-bottom:6px;">
-                    <input type="text" class="input-correcao${marcado ? ' marcado' : ''}" id="corr-${def.chave[1]}" value="${(v2 || '').toString().replace(/"/g, '&quot;')}">
-                `;
-            } else {
-                const v = ci[def.chave];
-                if (def.condicional && (!v || v === "Não se aplica")) return;
-                html += `
-                    <label class="campo-correcao-label${marcado ? ' marcado' : ''}">${def.label}${marcado ? ' <i class="fa-solid fa-circle-exclamation"></i>' : ''}</label>
-                    <input type="text" class="input-correcao${marcado ? ' marcado' : ''}" id="corr-${def.chave}" value="${(v || '').toString().replace(/"/g, '&quot;')}">
-                `;
-            }
-        });
-
-        document.getElementById("corrigirCampos").innerHTML = html;
-        document.getElementById("corrigirModal").style.display = "flex";
-    }
-
-    function fecharCorrigirModal() {
-        document.getElementById("corrigirModal").style.display = "none";
-        linhaCorrecaoAtual = null;
-    }
-
-    async function reenviarCorrecao() {
-        if (linhaCorrecaoAtual === null) return;
-        const linha = linhaCorrecaoAtual;
-        const payload = { action: "reenviarCI", row: linha, usuario: usuarioLogado.usuario };
-
-        let faltaObrigatorio = false;
-        CAMPOS_FORM_DEFS.forEach(def => {
-            if (Array.isArray(def.chave)) {
-                const el1 = document.getElementById(`corr-${def.chave[0]}`);
-                const el2 = document.getElementById(`corr-${def.chave[1]}`);
-                if (el1) payload[def.chave[0]] = el1.value.trim();
-                if (el2) payload[def.chave[1]] = el2.value.trim();
-            } else {
-                const el = document.getElementById(`corr-${def.chave}`);
-                if (el) {
-                    payload[def.chave] = el.value.trim();
-                    if (def.obrigatorio && !el.value.trim()) faltaObrigatorio = true;
-                }
-            }
-        });
-
-        if (faltaObrigatorio) return showToast("Preencha todos os campos obrigatórios.", "error");
-
-        const btn = document.getElementById("btnReenviar");
-        const htmlOriginal = btn.innerHTML;
-        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
-
-        try {
-            let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
-            let data = await res.json();
-            if (data.success) {
-                fecharCorrigirModal();
-                showToast("Solicitação corrigida e reenviada!", "success");
-            } else {
-                showToast(data.message || "Falha ao reenviar.", "error");
-            }
-        } catch (e) {
-            console.log("Erro ao reenviar correção", e);
-            showToast("Falha na comunicação.", "error");
-        } finally {
-            btn.disabled = false; btn.innerHTML = htmlOriginal;
+    // Reconstrói o destino de Novo Profissional/Troca Permanente, que pode ter sido
+    // salvo como "Unidade Principal + (Secundárias: X, Y)" quando múltiplas unidades
+    // foram marcadas.
+    function preencherDestinoComSecundarias(valorDestino) {
+        if (!valorDestino) return;
+        const match = valorDestino.match(/^(.*) \+ \(Secundárias: (.*)\)$/);
+        if (match) {
+            document.getElementById("unidadeDestino").value = match[1];
+            document.getElementById("profMultiUnidades").value = "Sim";
+            toggleMultiUnidades();
+            const secundarias = match[2].split(", ");
+            document.querySelectorAll('.chk-secundaria').forEach(chk => {
+                if (secundarias.includes(chk.value)) chk.checked = true;
+            });
+        } else {
+            document.getElementById("unidadeDestino").value = valorDestino;
         }
+    }
+
+    // Reconstrói o destino de Troca Temporária, que pode ter sido salvo como uma lista
+    // de unidades separadas por vírgula quando múltiplas unidades foram marcadas.
+    function preencherDestinoTemporaria(valorDestino) {
+        if (!valorDestino) return;
+        if (valorDestino.includes(", ")) {
+            document.getElementById("profMultiUnidades").value = "Sim";
+            toggleMultiUnidades();
+            const unidadesList = valorDestino.split(", ");
+            document.querySelectorAll('.chk-secundaria').forEach(chk => {
+                if (unidadesList.includes(chk.value)) chk.checked = true;
+            });
+        } else {
+            document.getElementById("unidadeDestino").value = valorDestino;
+        }
+    }
+
+    function abrirFormularioCorrecao(ci) {
+        linhaCorrecaoAtual = ci.row;
+        abrirFormulario(ci.tipoTroca); // monta a tela igual a uma solicitação nova do mesmo tipo
+
+        document.getElementById("formTitle").innerText = `Corrigir Solicitação: ${labelTipo(ci.tipoTroca)}`;
+        document.getElementById("btnEnviar").innerHTML = '<i class="fa-solid fa-paper-plane"></i> Reenviar Solicitação';
+        document.getElementById("bannerCorrecaoMotivo").innerText = ci.motivoDevolucao || "";
+        document.getElementById("bannerCorrecao").style.display = "flex";
+
+        // Preenche os campos com os dados originalmente enviados pelo solicitante
+        document.getElementById("profNome").value = ci.nomeProfissional || "";
+        document.getElementById("profCbo").value = ci.cbo || "";
+        analisarCBO(); // recalcula Conselho/ACS/Equipe já com o CBO preenchido
+
+        document.getElementById("profCpf").value = ci.cpf || "";
+        document.getElementById("profConselho").value = (ci.conselho && ci.conselho !== "Não se aplica") ? ci.conselho : "";
+        document.getElementById("profArea").value = (ci.area && ci.area !== "Não se aplica") ? ci.area : "";
+        document.getElementById("profMicroArea").value = (ci.microArea && ci.microArea !== "Não se aplica") ? ci.microArea : "";
+
+        if (ci.tipoTroca === "Novo Profissional") {
+            if (ci.vinculo && ci.vinculo !== "Não se aplica") document.getElementById("profVinculo").value = ci.vinculo;
+            document.getElementById("profCargaHoraria").value = (ci.cargaHoraria && ci.cargaHoraria !== "Não se aplica") ? ci.cargaHoraria : "";
+            document.getElementById("profDataEntrada").value = paraInputDate(ci.dataEntrada);
+        }
+        if (ci.tipoTroca === "Exclusão de Profissional") {
+            document.getElementById("profDataDesligamento").value = paraInputDate(ci.dataDesligamento);
+        }
+        if (ci.tipoTroca === "Troca Temporária") {
+            document.getElementById("profTempoEstimado").value = (ci.tempoEstimadoDias && ci.tempoEstimadoDias !== "Não se aplica") ? ci.tempoEstimadoDias : "";
+        }
+
+        if (ci.tipoTroca === "Exclusão de Profissional") {
+            document.getElementById("unidadeAtual").value = ci.unidadeAtual || "";
+        } else if (ci.tipoTroca === "Troca Permanente") {
+            document.getElementById("unidadeAtual").value = ci.unidadeAtual || "";
+            preencherDestinoComSecundarias(ci.unidadeDestino);
+        } else if (ci.tipoTroca === "Novo Profissional") {
+            preencherDestinoComSecundarias(ci.unidadeDestino);
+        } else if (ci.tipoTroca === "Troca Temporária") {
+            preencherDestinoTemporaria(ci.unidadeDestino);
+        }
+
+        if (ci.equipe && ci.equipe !== "Não se aplica") document.getElementById("profEquipe").value = ci.equipe;
+        verificarEquipe();
+
+        // Destaca (circula em vermelho) os campos que o administrador marcou como incorretos
+        const marcados = ci.camposErrados || [];
+        marcados.forEach(label => {
+            const ids = MAPA_CAMPO_PARA_ID[label];
+            if (!ids) return;
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add("campo-devolvido");
+            });
+        });
     }
 
     document.getElementById("formCI").addEventListener("submit", async function(e) {
@@ -929,9 +992,13 @@
             if (selecionadas.length === 0) return showToast("Selecione ao menos uma unidade de atuação.", "error");
         }
 
+        const emModoCorrecao = linhaCorrecaoAtual !== null;
         const btn = document.getElementById("btnEnviar");
-        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registrando...';
-        mostrarOverlay("Enviando documento...");
+        btn.disabled = true;
+        btn.innerHTML = emModoCorrecao
+            ? '<i class="fa-solid fa-spinner fa-spin"></i> Reenviando...'
+            : '<i class="fa-solid fa-spinner fa-spin"></i> Registrando...';
+        mostrarOverlay(emModoCorrecao ? "Reenviando solicitação..." : "Enviando documento...");
 
         let uAtual = document.getElementById("unidadeAtual").value;
         let uDest = document.getElementById("unidadeDestino").value;
@@ -958,9 +1025,12 @@
         }
 
         const payload = {
-            action: "enviarCI",
-            idKey: idKeyFormularioAtual,
-            remetente: usuarioLogado.usuario,
+            action: emModoCorrecao ? "reenviarCI" : "enviarCI",
+            // Corrigindo uma devolução: identifica a linha já existente e quem está reenviando.
+            // Solicitação nova: chave de idempotência (evita duplicidade) e o remetente.
+            ...(emModoCorrecao
+                ? { row: linhaCorrecaoAtual, usuario: usuarioLogado.usuario }
+                : { idKey: idKeyFormularioAtual, remetente: usuarioLogado.usuario }),
             tipoTroca: tipoDocumentoAtual,
             nomeProfissional: document.getElementById("profNome").value.toUpperCase(),
             cbo: document.getElementById("profCbo").value,
@@ -983,16 +1053,17 @@
         try {
             let data = await fetchComRetry(payload, 3, 20000);
             if(data.success) {
-                showToast("Registrado com sucesso!", "success");
+                showToast(emModoCorrecao ? "Solicitação corrigida e reenviada!" : "Registrado com sucesso!", "success");
                 idKeyFormularioAtual = gerarIdKey(); // gera nova chave para o próximo envio
                 voltarIndex();
             } else {
-                showToast("Não foi possível registrar. Tente novamente.", "error");
+                showToast(data.message || (emModoCorrecao ? "Não foi possível reenviar. Tente novamente." : "Não foi possível registrar. Tente novamente."), "error");
             }
         } catch(err) { showToast("Falha na comunicação. Verifique sua internet e tente novamente.", "error"); } 
         finally { 
-            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Documento'; 
-            if(tipoDocumentoAtual === "Exclusão de Profissional") btn.style.backgroundColor = "var(--danger)";
+            btn.disabled = false;
+            btn.innerHTML = emModoCorrecao ? '<i class="fa-solid fa-paper-plane"></i> Reenviar Solicitação' : '<i class="fa-solid fa-paper-plane"></i> Enviar Documento';
+            if(tipoDocumentoAtual === "Exclusão de Profissional" && !emModoCorrecao) btn.style.backgroundColor = "var(--danger)";
             esconderOverlay();
         }
     });
