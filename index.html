@@ -170,6 +170,14 @@
         .btn-corrigir:hover { opacity:0.9; }
 
         /* Banner de contexto no topo do formulário, quando está em modo de correção */
+        /* Remoção de acesso temporário (prazo vencido) */
+        .remocao-box { margin-top: 12px; padding: 10px 12px; border: 2px solid var(--danger); border-radius: 8px; background: #fef2f2; }
+        .remocao-box.ok { border-color: #cbd5e1; background: #f8fafc; }
+        .remocao-aviso { margin: 6px 0 4px; font-size: 13px; color: #7f1d1d; font-weight: 600; }
+
+        .lembrar-login { display:flex; align-items:center; gap:8px; font-size:13px; color:#64748b; margin:-4px 0 14px; cursor:pointer; }
+        .lembrar-login input { width:auto; margin:0; accent-color: var(--primary); }
+
         .banner-correcao { display:flex; gap:10px; align-items:flex-start; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 14px; margin-bottom:16px; font-size:13px; }
         .banner-correcao i { color:var(--danger); font-size:18px; margin-top:2px; }
         .banner-correcao strong { color:var(--danger); display:block; margin-bottom:2px; }
@@ -210,6 +218,7 @@
         <form id="formLogin">
             <div class="form-group"><label>Usuário</label><input type="text" id="loginUser" required></div>
             <div class="form-group"><label>Senha</label><input type="password" id="loginPass" required></div>
+            <label class="lembrar-login"><input type="checkbox" id="loginLembrar"> Lembrar meu usuário neste dispositivo</label>
             <button type="submit" id="btnLogar"><i class="fa-solid fa-right-to-bracket"></i> Acessar</button>
         </form>
     </div>
@@ -668,6 +677,36 @@
         document.getElementById(tela).classList.add('active');
     }
 
+    /* ========================================================
+       LEMBRAR USUÁRIO
+       Guarda só o NOME DE USUÁRIO no navegador (nunca a senha). Nos próximos acessos o
+       campo já vem preenchido e o cursor vai direto para a senha.
+       ======================================================== */
+    const CHAVE_USUARIO_LEMBRADO = "ci_usuario_lembrado";
+
+    function aplicarUsuarioLembrado() {
+        try {
+            const salvo = localStorage.getItem(CHAVE_USUARIO_LEMBRADO);
+            if (salvo) {
+                document.getElementById("loginUser").value = salvo;
+                document.getElementById("loginLembrar").checked = true;
+                document.getElementById("loginPass").focus();
+            }
+        } catch (e) { /* navegador sem localStorage: simplesmente não lembra */ }
+    }
+
+    function salvarOuLimparUsuarioLembrado(usuarioDigitado) {
+        try {
+            if (document.getElementById("loginLembrar").checked) {
+                localStorage.setItem(CHAVE_USUARIO_LEMBRADO, usuarioDigitado.trim());
+            } else {
+                localStorage.removeItem(CHAVE_USUARIO_LEMBRADO);
+            }
+        } catch (e) { /* ignora */ }
+    }
+
+    aplicarUsuarioLembrado();
+
     document.getElementById("formLogin").addEventListener("submit", async function(e) {
         e.preventDefault();
         const btn = document.getElementById("btnLogar");
@@ -678,6 +717,7 @@
             let data = await fetchComRetry({ action: "login", usuario: document.getElementById("loginUser").value, senha: document.getElementById("loginPass").value }, 3, 15000);
             if(data.success) {
                 usuarioLogado = data;
+                salvarOuLimparUsuarioLembrado(document.getElementById("loginUser").value); // só lembra após login válido
                 // Deixa a primeira letra do nome maiúscula para estética
                 const nomeFormatado = data.usuario.split(' ').map(n => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()).join(' ');
                 document.getElementById("lblUser").innerText = nomeFormatado;
@@ -768,7 +808,7 @@
         linhaCorrecaoAtual = null;
         navegar("pageIndex");
     }
-    function logout() { pararAutoAtualizacao(); usuarioLogado = null; navegar("pageLogin"); document.getElementById("formLogin").reset(); }
+    function logout() { pararAutoAtualizacao(); usuarioLogado = null; navegar("pageLogin"); document.getElementById("formLogin").reset(); aplicarUsuarioLembrado(); }
 
     /* ========================================================
        NOTIFICAÇÕES DO SOLICITANTE
@@ -1211,7 +1251,8 @@
             // Uma CI devolvida sai da fila de pendentes (não há mais nada a validar nela)
             // e passa a aparecer no Histórico, junto com as concluídas.
             let concluido = (ci.statusCNES === true && ci.statusCELK === true);
-            let finalizado = concluido || ci.devolvida;
+            // Exceção: CI temporária com prazo vencido volta para Em Aberto até o profissional ser removido do CELK.
+            let finalizado = (concluido || ci.devolvida) && !ci.removerAcesso;
             let passaAba = (abaAtual === 'historico') ? finalizado : !finalizado;
             
             // 2. Filtro da Lupa (Pesquisa Global)
@@ -1283,7 +1324,14 @@
                 let tags = [];
                 if (!ci.statusCNES) tags.push("CNES");
                 if (!ci.statusCELK) tags.push("CELK");
-                tagPendente = `<span style="float:right; font-size:11px; font-weight:bold; color:var(--warning); background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid var(--warning);">FALTA: ${tags.join(' e ')}</span>`;
+                if (tags.length > 0) {
+                    tagPendente = `<span style="float:right; font-size:11px; font-weight:bold; color:var(--warning); background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid var(--warning);">FALTA: ${tags.join(' e ')}</span>`;
+                }
+                if (ci.removerAcesso) {
+                    tagPendente = `<span style="float:right; font-size:11px; font-weight:bold; color:var(--danger); background:#fef2f2; padding:2px 6px; border-radius:4px; border:1px solid var(--danger); margin-left:6px;">REMOVER DO CELK</span>` + tagPendente;
+                }
+            } else if (ci.removido) {
+                tagPendente = `<span style="float:right; font-size:11px; font-weight:bold; color:#475569; background:#f1f5f9; padding:2px 6px; border-radius:4px; border:1px solid #cbd5e1;">ACESSO ENCERRADO</span>`;
             } else if (ci.devolvida) {
                 tagPendente = `<span style="float:right; font-size:11px; font-weight:bold; color:var(--danger); background:#fef2f2; padding:2px 6px; border-radius:4px; border:1px solid var(--danger);">DEVOLVIDA</span>`;
             }
@@ -1311,6 +1359,7 @@
             if(ci.dataEntrada && ci.dataEntrada !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-check" style="color:var(--primary)"></i> Data Entrada:</strong> ${campoClicavel(ci, "Data de Entrada", formatarDataBr(ci.dataEntrada))}<br>`;
             if(ci.dataDesligamento && ci.dataDesligamento !== "Não se aplica") detalhesExtras += `<strong><i class="fa-regular fa-calendar-xmark" style="color:red"></i> Data Desligamento:</strong> ${campoClicavel(ci, "Data de Desligamento", formatarDataBr(ci.dataDesligamento))}<br>`;
             if(ci.tempoEstimadoDias && ci.tempoEstimadoDias !== "Não se aplica") detalhesExtras += `<strong><i class="fa-solid fa-hourglass-half"></i> Tempo Estimado na Unidade:</strong> ${campoClicavel(ci, "Tempo Estimado", `${ci.tempoEstimadoDias} dia(s)`)}<br>`;
+            if(ci.dataFimAcesso) detalhesExtras += `<strong><i class="fa-regular fa-calendar-xmark" style="color:var(--warning)"></i> Fim do acesso previsto:</strong> ${formatarDataBr(ci.dataFimAcesso)}<br>`;
 
             // Strings de autoria abaixo do botão se estiver validado
             let textoAuditCNES = (ci.statusCNES && ci.infoCNES) ? `<span class="audit-info">${ci.infoCNES}</span>` : "";
@@ -1344,6 +1393,18 @@
                         ${textoAuditCELK}
                     </div>
                 </div>
+
+                ${(ci.removerAcesso || ci.removido) ? `
+                <!-- Remoção de acesso temporário: prazo vencido, remover do CELK -->
+                <div class="remocao-box ${ci.removido ? 'ok' : ''}">
+                    <strong><i class="fa-solid fa-user-clock"></i> Remoção de acesso temporário</strong>
+                    ${ci.removerAcesso ? `<div class="remocao-aviso">Prazo do acesso temporário encerrado em ${formatarDataBr(ci.dataFimAcesso)}. Remover o profissional do CELK.</div>` : ""}
+                    ${ci.infoCELK ? `<span class="audit-info" style="text-align:left;">Cadastro no CELK confirmado: ${ci.infoCELK}</span>` : ""}
+                    <button type="button" class="btn-valida ${ci.removido ? 'ok' : ''}" style="margin-top:8px;" onclick="confirmarRemocaoTemporaria(${ci.row}, ${!ci.removido})">
+                        <i class="fa-solid ${ci.removido ? 'fa-check-double' : 'fa-user-minus'}"></i> ${ci.removido ? 'Removido do CELK' : 'Marcar como removido do CELK'}
+                    </button>
+                    ${ci.removido && ci.infoRemocao ? `<span class="audit-info">Removido por ${ci.infoRemocao}</span>` : ""}
+                </div>` : ""}
 
                 <!-- Observação (disponível para qualquer tipo de CI) -->
                 <hr style="border-top:1px dashed #cbd5e1; margin:12px 0 8px;">
@@ -1394,7 +1455,7 @@
             "Solicitante": ci.remetente,
             "Status CNES": ci.statusCNES ? "Concluído" : "Pendente",
             "Status CELK": ci.statusCELK ? "Concluído" : "Pendente",
-            "Situação": ci.devolvida ? `Devolvida (${ci.motivoDevolucao})` : ((ci.statusCNES && ci.statusCELK) ? "Concluída" : "Em aberto"),
+            "Situação": ci.devolvida ? `Devolvida (${ci.motivoDevolucao})` : (ci.removerAcesso ? "Acesso temporário vencido - remover do CELK" : (ci.removido ? "Concluída - acesso temporário encerrado" : ((ci.statusCNES && ci.statusCELK) ? "Concluída" : "Em aberto"))),
             "Observação": ci.observacao || ""
         }));
     }
@@ -1456,6 +1517,37 @@
     }
 
     // Passamos o usuário logado para a função
+    // Registra (ou desfaz) a remoção do profissional do CELK ao fim de um acesso temporário.
+    async function confirmarRemocaoTemporaria(linha, novoStatus) {
+        event.stopPropagation();
+        const ciIndex = bancoDadosCIs.findIndex(c => c.row === linha);
+        const nomeGestor = usuarioLogado.usuario.split(' ').map(n => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()).join(' ');
+
+        try {
+            let res = await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "confirmarRemocaoTemporaria", row: linha, status: novoStatus, usuario: nomeGestor, usuarioAdmin: usuarioLogado.usuario })
+            });
+            let data = await res.json();
+
+            if (data.success && ciIndex > -1) {
+                const ci = bancoDadosCIs[ciIndex];
+                ci.removido = novoStatus;
+                ci.infoRemocao = data.infoStr;
+                // Se desfez a remoção e o prazo já venceu, volta a exigir a remoção.
+                const hoje = new Date().toLocaleDateString('en-CA'); // AAAA-MM-DD no fuso local
+                ci.removerAcesso = !novoStatus && ci.statusCELK && ci.dataFimAcesso && hoje >= ci.dataFimAcesso;
+                mudarAba(abaAtual);
+                showToast(novoStatus ? "Remoção do CELK registrada." : "Remoção desfeita.", "success");
+            } else if (!data.success) {
+                showToast(data.message || "Falha ao registrar.", "error");
+            }
+        } catch (e) {
+            console.log("Erro ao registrar remoção", e);
+            showToast("Falha ao registrar.", "error");
+        }
+    }
+
     async function atualizarSistemaRestrito(linha, sistema, novoStatus) {
         event.stopPropagation(); 
         
